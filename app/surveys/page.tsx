@@ -17,6 +17,19 @@ function formatCoins(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+function getSurveyTitle(type: string | null) {
+  switch (type) {
+    case "need_qualification":
+      return "Quick Opinion Survey";
+    case "survey":
+      return "Opinion Survey";
+    case "offer":
+      return "Special Offer";
+    default:
+      return "Opinion Survey";
+  }
+}
+
 function SurveySkeleton() {
   return (
     <div className="animate-pulse rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -272,9 +285,7 @@ export default function SurveysPage() {
 
                 <div className="mt-5">
                   <h3 className="pr-20 text-lg font-bold tracking-tight text-gray-900">
-                    {survey.type
-                      ? survey.type
-                      : "Opinion Survey"}
+                    {getSurveyTitle(survey.type)}
                   </h3>
 
                   <p className="mt-2 text-sm leading-5 text-gray-500">
