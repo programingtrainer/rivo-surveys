@@ -40,3 +40,288 @@ article h2 {
     font-size: 1.25rem;
   }
 }
+
+/* ============================================
+   Rivo Motion System
+   Lightweight animations — no extra library
+   ============================================ */
+
+.page-transition {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+  will-change: opacity, transform;
+}
+
+.page-transition-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Smooth interactive elements */
+button,
+a,
+[role="button"] {
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+/* Press feedback */
+button:active,
+[role="button"]:active {
+  transform: scale(0.98);
+}
+
+/* Cards */
+.motion-card {
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+
+.motion-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Fade-up utility */
+.motion-fade-up {
+  animation: rivoFadeUp 420ms ease both;
+}
+
+@keyframes rivoFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered children */
+.motion-stagger > * {
+  animation: rivoFadeUp 420ms ease both;
+}
+
+.motion-stagger > *:nth-child(1) {
+  animation-delay: 40ms;
+}
+
+.motion-stagger > *:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.motion-stagger > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.motion-stagger > *:nth-child(4) {
+  animation-delay: 160ms;
+}
+
+.motion-stagger > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+
+.motion-stagger > *:nth-child(6) {
+  animation-delay: 240ms;
+}
+
+/* Respect accessibility preferences */
+@media (prefers-reduced-motion: reduce) {
+  .page-transition {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .motion-fade-up,
+  .motion-stagger > * {
+    animation: none;
+  }
+
+  button,
+  a,
+  [role="button"],
+  .motion-card {
+    transition: none;
+  }
+}
+
+/* ============================================
+   Rivo Fluid UI
+   Responsive layout that adapts to any screen
+   ============================================ */
+
+:root {
+  --rivo-content-width: min(100% - 2rem, 1280px);
+  --rivo-page-padding: clamp(1rem, 3vw, 2.5rem);
+  --rivo-section-gap: clamp(1.5rem, 4vw, 3.5rem);
+  --rivo-card-gap: clamp(0.75rem, 2vw, 1.5rem);
+  --rivo-radius: clamp(0.75rem, 1.5vw, 1.25rem);
+}
+
+/* Main content naturally follows the viewport */
+main,
+section,
+article {
+  max-width: 100%;
+}
+
+/* Fluid containers */
+.rivo-container {
+  width: var(--rivo-content-width);
+  margin-inline: auto;
+  padding-inline: var(--rivo-page-padding);
+}
+
+/* Fluid grids */
+.rivo-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 280px), 1fr)
+  );
+  gap: var(--rivo-card-gap);
+}
+
+/* Cards automatically reshape */
+.rivo-card {
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--rivo-radius);
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+
+.rivo-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Fluid typography */
+.rivo-title {
+  font-size: clamp(1.75rem, 4vw, 3.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.rivo-heading {
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  line-height: 1.2;
+}
+
+.rivo-text {
+  font-size: clamp(0.9rem, 1.2vw, 1.05rem);
+}
+
+/* Fluid spacing */
+.rivo-section {
+  padding-block: clamp(2rem, 6vw, 5rem);
+}
+
+.rivo-stack {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+/* Images never overflow their container */
+img,
+video,
+svg {
+  max-width: 100%;
+}
+
+/* Tables stay usable on small screens */
+table {
+  width: 100%;
+  max-width: 100%;
+}
+
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Forms adapt to narrow screens */
+input,
+textarea,
+select {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Touch-friendly controls */
+@media (pointer: coarse) {
+  button,
+  a,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    min-height: 42px;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  :root {
+    --rivo-page-padding: 0.875rem;
+  }
+
+  .rivo-container {
+    width: 100%;
+  }
+}
+
+/* Tablets */
+@media (min-width: 640px) {
+  :root {
+    --rivo-page-padding: clamp(1.25rem, 3vw, 2rem);
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  :root {
+    --rivo-page-padding: clamp(1.5rem, 3vw, 2.5rem);
+  }
+}
+
+/* Very large screens */
+@media (min-width: 1536px) {
+  :root {
+    --rivo-content-width: min(100% - 4rem, 1440px);
+  }
+}
+
+/* Prevent horizontal scrolling caused by oversized elements */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Respect reduced-motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .rivo-card {
+    transition: none;
+  }
+
+  .rivo-card:hover {
+    transform: none;
+  }
+}
