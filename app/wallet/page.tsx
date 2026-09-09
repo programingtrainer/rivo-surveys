@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { wallets } from "@/lib/schema";
 
+import WithdrawalForm from "./WithdrawalForm";
 export default async function WalletPage() {
   const user = await getCurrentUser();
 
@@ -30,7 +31,7 @@ export default async function WalletPage() {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <main className="min-h-screen bg-[#f7f7f5] text-[#111]">
+    <main className="min-h-screen bg-[#f7f7f5] text-[#111] rivo-wallet-enter">
       <header className="border-b border-black/10 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <Link
@@ -151,6 +152,7 @@ export default async function WalletPage() {
                 </div>
               </div>
             </div>
+
           </section>
 
           <section className="rounded-3xl border border-black/10 bg-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8">
@@ -205,54 +207,17 @@ export default async function WalletPage() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-black/55">
-                  Withdrawals will become available once your account meets
-                  the applicable eligibility requirements.
+                  Withdraw your eligible Rivo balance directly to your
+                  FaucetPay account.
                 </p>
               </div>
 
               <div className="hidden rounded-xl border border-black/10 px-3 py-2 text-xs font-medium text-black/50 sm:block">
-                Available soon
+                FaucetPay
               </div>
             </div>
 
-            <div className="mt-7">
-              <label
-                htmlFor="withdrawal-amount"
-                className="mb-2 block text-sm font-medium"
-              >
-                Withdrawal amount
-              </label>
-
-              <div className="relative">
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-black/40">
-                  $
-                </span>
-
-                <input
-                  id="withdrawal-amount"
-                  name="amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  disabled
-                  className="w-full rounded-xl border border-black/10 bg-[#f7f7f5] px-4 py-3 pl-9 text-sm outline-none"
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              disabled
-              className="mt-4 w-full cursor-not-allowed rounded-xl bg-black/10 px-5 py-3 text-sm font-semibold text-black/35"
-            >
-              Withdraw
-            </button>
-
-            <p className="mt-3 text-center text-xs leading-5 text-black/40">
-              Withdrawal methods and eligibility will be enabled when the
-              payout system is available.
-            </p>
+            <WithdrawalForm balance={balance} />
           </section>
 
           <section className="rounded-3xl border border-black/10 bg-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8">

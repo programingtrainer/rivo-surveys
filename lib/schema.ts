@@ -29,3 +29,22 @@ export const cpxTransactions = pgTable("cpx_transactions", {
   userIdIdx: index("cpx_transactions_user_id_idx").on(table.userId),
   statusIdx: index("cpx_transactions_status_idx").on(table.status),
 }));
+
+export const withdrawals = pgTable("withdrawals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  fee: numeric("fee", { precision: 12, scale: 2 }).notNull(),
+  netAmount: numeric("net_amount", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("USDT"),
+  payoutAddress: text("payout_address").notNull(),
+  status: text("status").notNull().default("pending"),
+  provider: text("provider").notNull().default("faucetpay"),
+  providerPayoutId: text("provider_payout_id"),
+  failureReason: text("failure_reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("withdrawals_user_id_idx").on(table.userId),
+  statusIdx: index("withdrawals_status_idx").on(table.status),
+}));
