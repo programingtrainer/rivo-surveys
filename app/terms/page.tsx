@@ -203,8 +203,13 @@ export default function TermsPage() {
           <section>
             <h2>16. Contact</h2>
             <p>
-              Questions regarding these Terms should be directed through the
-              support or contact channel made available by Rivo Surveys.
+              Questions regarding these Terms can be sent to{" "}
+              <a
+                href="mailto:rivosurveys@gmail.com"
+                className="underline hover:text-black"
+              >
+                rivosurveys@gmail.com
+              </a>.
             </p>
           </section>
         </div>

@@ -189,8 +189,13 @@ export default function PrivacyPage() {
           <section>
             <h2>17. Contact</h2>
             <p>
-              Privacy-related questions or requests should be submitted through
-              the support or contact channel made available by Rivo Surveys.
+              Privacy-related questions or requests can be sent to{" "}
+              <a
+                href="mailto:rivosurveys@gmail.com"
+                className="underline hover:text-black"
+              >
+                rivosurveys@gmail.com
+              </a>.
             </p>
           </section>
         </div>
