@@ -131,14 +131,14 @@ export default function SurveysPage() {
             </div>
 
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Earn by sharing
+              Paid Online Surveys
               <br />
-              your opinion.
+              That Reward Your Opinion.
             </h1>
 
             <p className="mt-4 max-w-xl text-sm leading-6 text-white/60 sm:text-base">
-              Choose a survey that fits your time, complete it, and
-              earn Rivo Coins directly in your wallet.
+              Find available paid surveys, share your opinions, and
+              earn Rivo Coins for eligible completed research activities.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
@@ -177,11 +177,11 @@ export default function SurveysPage() {
               </div>
 
               <h2 className="mt-1 text-2xl font-bold tracking-tight">
-                Available surveys
+                Available Paid Surveys
               </h2>
 
               <p className="mt-1 text-sm text-gray-500">
-                Pick an opportunity and start earning.
+                Choose an online survey that fits your time and start earning Rivo Coins.
               </p>
             </div>
 
@@ -381,6 +381,115 @@ export default function SurveysPage() {
           </div>
         )}
       </div>
-    </main>
+    
+        <section className="mt-14 rounded-3xl border border-gray-200 bg-white px-6 py-10 shadow-sm sm:px-10">
+          <div className="max-w-4xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">
+              About Rivo Surveys
+            </p>
+
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
+              Earn rewards by completing online surveys
+            </h2>
+
+            <div className="mt-5 space-y-4 text-sm leading-7 text-gray-600 sm:text-base">
+              <p>
+                Rivo Surveys gives you access to online survey opportunities
+                where you can share your opinions and earn Rivo Coins. Survey
+                availability, completion requirements, and rewards can vary
+                depending on the research opportunity and your eligibility.
+              </p>
+
+              <p>
+                Looking for paid surveys online? Browse the available
+                opportunities above, choose a survey that matches your profile,
+                and follow the instructions provided by the research partner.
+                When an eligible survey is completed successfully, your reward
+                can be credited to your Rivo wallet.
+              </p>
+
+              <p>
+                For more information, learn
+                {" "}
+                <a
+                  href="/docs/getting-started"
+                  className="font-semibold text-gray-900 underline underline-offset-4 hover:text-gray-600"
+                >
+                  how Rivo Surveys works
+                </a>
+                {" "}
+                or review our
+                {" "}
+                <a
+                  href="/rewards-policy"
+                  className="font-semibold text-gray-900 underline underline-offset-4 hover:text-gray-600"
+                >
+                  rewards policy
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-3xl border border-gray-200 bg-white px-6 py-10 shadow-sm sm:px-10">
+          <div className="max-w-4xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">
+              Survey FAQ
+            </p>
+
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-950">
+              Frequently asked questions about paid surveys
+            </h2>
+
+            <div className="mt-7 space-y-3">
+              <details className="rounded-2xl border border-gray-200 p-5">
+                <summary className="cursor-pointer font-semibold text-gray-900">
+                  What are paid online surveys?
+                </summary>
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  Paid online surveys are questionnaires used for market
+                  research. Participants share opinions and feedback and may
+                  receive rewards for eligible completed surveys.
+                </p>
+              </details>
+
+              <details className="rounded-2xl border border-gray-200 p-5">
+                <summary className="cursor-pointer font-semibold text-gray-900">
+                  How do I earn rewards from surveys?
+                </summary>
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  Choose an available survey, complete the required questions,
+                  and follow the survey provider's instructions. Eligible
+                  completed activities can earn Rivo Coins.
+                </p>
+              </details>
+
+              <details className="rounded-2xl border border-gray-200 p-5">
+                <summary className="cursor-pointer font-semibold text-gray-900">
+                  Are all surveys available to everyone?
+                </summary>
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  No. Survey availability and eligibility can vary based on
+                  factors such as the research requirements and the information
+                  provided during qualification.
+                </p>
+              </details>
+
+              <details className="rounded-2xl border border-gray-200 p-5">
+                <summary className="cursor-pointer font-semibold text-gray-900">
+                  Where can I see my survey rewards?
+                </summary>
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  Eligible rewards are reflected in your Rivo wallet. You can
+                  visit the wallet page to review your balance and available
+                  account options.
+                </p>
+              </details>
+            </div>
+          </div>
+        </section>
+
+      </main>
   );
 }

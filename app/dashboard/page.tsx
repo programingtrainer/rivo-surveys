@@ -14,39 +14,45 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-[#f7f7f8] text-gray-900">
       <header className="sticky top-0 z-20 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-6">
           <a
             href="/dashboard"
-            className="text-xl font-bold tracking-tight text-gray-950"
+            className="flex shrink-0 items-center gap-2.5"
+            aria-label="Rivo Surveys Dashboard"
           >
-            Rivo Surveys
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-black text-base font-black tracking-tight text-white shadow-sm">
+              R
+            </span>
+            <span className="text-lg font-bold tracking-tight text-gray-950 sm:text-xl">
+              Rivo Surveys
+            </span>
           </a>
 
-          <nav className="hidden items-center gap-7 md:flex">
+          <nav className="hidden items-center gap-1 md:flex">
             <a
               href="/dashboard"
-              className="text-sm font-semibold text-black"
+              className="rounded-lg bg-gray-100 px-3.5 py-2 text-sm font-semibold text-gray-950 transition hover:bg-gray-200"
             >
               Dashboard
             </a>
 
             <a
               href="/surveys"
-              className="text-sm font-medium text-gray-500 transition hover:text-black"
+              className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-950"
             >
               Surveys
             </a>
 
             <a
               href="/wallet"
-              className="text-sm font-medium text-gray-500 transition hover:text-black"
+              className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-950"
             >
               Wallet
             </a>
 
             <a
               href="/settings"
-              className="text-sm font-medium text-gray-500 transition hover:text-black"
+              className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-950"
             >
               Settings
             </a>
@@ -54,7 +60,7 @@ export default async function DashboardPage() {
             {admin && (
               <a
                 href="/admin"
-                className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800"
+                className="ml-1 rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800"
               >
                 Admin
               </a>
@@ -63,7 +69,7 @@ export default async function DashboardPage() {
 
           <a
             href="/settings"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700 transition hover:bg-gray-200"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700 transition hover:bg-gray-200"
             aria-label="Account settings"
           >
             {displayName.charAt(0).toUpperCase()}

@@ -33,12 +33,12 @@ export default function Home() {
                                                                                                                                                                                                                                                                                                                         </p>
 
                                                                                                                                                                                                                                                                                                                                     <h1 className="mt-5 text-5xl font-bold tracking-tight text-gray-950 md:text-7xl">
-                                                                                                                                                                                                                                                                                                                                                  Your opinion has value.
+                                                                                                                                                                                                                                                                                                                                                  Get Paid for Your Opinions with Online Surveys.
                                                                                                                                                                                                                                                                                                                                                               </h1>
 
                                                                                                                                                                                                                                                                                                                                                                           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600 md:text-xl">
-                                                                                                                                                                                                                                                                                                                                                                                        Complete surveys from trusted research opportunities, earn
-                                                                                                                                                                                                                                                                                                                                                                                                      rewards, and manage everything from one simple account.
+                                                                                                                                                                                                                                                                                                                                                                                        Complete paid online surveys, share your opinions, earn Rivo Coins,
+                                                                                                                                                                                                                                                                                                                                                                                                      and manage your rewards from one simple account.
                                                                                                                                                                                                                                                                                                                                                                                                                   </p>
 
                                                                                                                                                                                                                                                                                                                                                                                                                               <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
@@ -111,7 +111,74 @@ export default function Home() {
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       <section className="border-t border-gray-100 bg-gray-50">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               <div className="mx-auto max-w-4xl px-6 py-20 text-center">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <h2 className="text-3xl font-bold tracking-tight text-gray-950 md:text-4xl">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    Ready to get started?
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+        <section className="border-b border-gray-100 bg-gray-50">
+          <div className="mx-auto max-w-5xl px-6 py-20 md:py-24">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-semibold uppercase tracking-wider text-gray-500">
+                Paid Surveys FAQ
+              </p>
+
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-950 md:text-4xl">
+                Frequently asked questions about online surveys
+              </h2>
+
+              <p className="mt-4 text-gray-600">
+                Learn how Rivo Surveys works, how you can earn rewards, and what
+                to expect when completing online surveys.
+              </p>
+            </div>
+
+            <div className="mx-auto mt-10 max-w-3xl space-y-4">
+              <details className="rounded-2xl border border-gray-200 bg-white p-6">
+                <summary className="cursor-pointer font-semibold text-gray-950">
+                  What are paid online surveys?
+                </summary>
+                <p className="mt-3 leading-7 text-gray-600">
+                  Paid online surveys are research questionnaires where
+                  participants share their opinions and feedback. Rivo Surveys
+                  provides available survey opportunities and rewards eligible
+                  participants for completed surveys.
+                </p>
+              </details>
+
+              <details className="rounded-2xl border border-gray-200 bg-white p-6">
+                <summary className="cursor-pointer font-semibold text-gray-950">
+                  How can I earn money from surveys?
+                </summary>
+                <p className="mt-3 leading-7 text-gray-600">
+                  Create a free Rivo Surveys account, explore available survey
+                  opportunities, complete surveys that match your profile, and
+                  earn Rivo Coins when eligible activities are completed.
+                </p>
+              </details>
+
+              <details className="rounded-2xl border border-gray-200 bg-white p-6">
+                <summary className="cursor-pointer font-semibold text-gray-950">
+                  Is Rivo Surveys free to join?
+                </summary>
+                <p className="mt-3 leading-7 text-gray-600">
+                  Yes. Creating a Rivo Surveys account is free. You can then
+                  explore available online surveys and participate in eligible
+                  research opportunities.
+                </p>
+              </details>
+
+              <details className="rounded-2xl border border-gray-200 bg-white p-6">
+                <summary className="cursor-pointer font-semibold text-gray-950">
+                  Where can I find available surveys?
+                </summary>
+                <p className="mt-3 leading-7 text-gray-600">
+                  Visit the surveys page to see currently available survey
+                  opportunities and learn more about completing surveys through
+                  Rivo Surveys.
+                </p>
+              </details>
+            </div>
+          </div>
+        </section>
+
+Ready to get started?
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               </h2>
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <p className="mt-4 text-gray-600">

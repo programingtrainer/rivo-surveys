@@ -164,41 +164,27 @@ export async function POST(request: Request) {
           30 * 24 * 60 * 60 * 1000
       );
 
-    const result = await db.transaction(
-      async (tx) => {
-        const insertedUsers = await tx
-          .insert(users)
-          .values({
-            email,
-            name,
-            passwordHash,
-          })
-          .returning({
-            id: users.id,
-          });
+    const userId = crypto.randomUUID();
 
-        const user = insertedUsers[0];
-
-        if (!user) {
-          throw new Error(
-            "Failed to create user."
-          );
-        }
-
-        await tx.insert(wallets).values({
-          userId: user.id,
-          balance: "0",
-        });
-
-        await tx.insert(sessions).values({
-          userId: user.id,
-          tokenHash,
-          expiresAt,
-        });
-
-        return user;
-      }
-    );
+    await db.batch([
+      db
+        .insert(users)
+        .values({
+          id: userId,
+          email,
+          name,
+          passwordHash,
+        }),
+      db.insert(wallets).values({
+        userId,
+        balance: "0",
+      }),
+      db.insert(sessions).values({
+        userId,
+        tokenHash,
+        expiresAt,
+      }),
+    ]);
 
     const cookieStore = await cookies();
 
@@ -220,7 +206,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
-        userId: result.id,
+        userId,
       },
       { status: 201 }
     );

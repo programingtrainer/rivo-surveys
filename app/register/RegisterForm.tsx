@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
+import type { TurnstileInstance } from "@marsidev/react-turnstile";
 
 type RegisterFormProps = {
   siteKey: string;
@@ -15,6 +16,7 @@ export default function RegisterForm({ siteKey }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -89,13 +91,15 @@ export default function RegisterForm({ siteKey }: RegisterFormProps) {
             ? data.error
             : "Unable to create account. Please try again."
         );
-        setLoading(false);
         return;
       }
 
       window.location.href = "/dashboard";
     } catch {
       setError("Something went wrong. Please try again.");
+    } finally {
+      setTurnstileToken("");
+      turnstileRef.current?.reset();
       setLoading(false);
     }
   }
@@ -308,8 +312,11 @@ export default function RegisterForm({ siteKey }: RegisterFormProps) {
 
           <div>
             <Turnstile
+              ref={turnstileRef}
               siteKey={siteKey}
               onSuccess={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken("")}
+              onError={() => setTurnstileToken("")}
             />
           </div>
 
