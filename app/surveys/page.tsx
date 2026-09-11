@@ -90,7 +90,7 @@ export default function SurveysPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#f7f8fa] text-gray-900">
+    <main className="motion-fade-up min-h-screen bg-[#f7f8fa] text-gray-900">
       <AppHeader />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">

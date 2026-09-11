@@ -54,7 +54,7 @@ export default function AppHeader({
 
         <nav
           aria-label="Main navigation"
-          className="ml-auto flex min-w-0 items-center gap-1 overflow-x-auto scrollbar-none"
+          className="absolute left-1/2 flex min-w-0 -translate-x-1/2 items-center gap-1 overflow-x-auto scrollbar-none"
         >
           {navItems.map((item) => {
             const active = isActive(item.key);

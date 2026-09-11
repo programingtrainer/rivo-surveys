@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import PageTransition from "./PageTransition";
 import LiveRefresh from "./LiveRefresh";
 import StructuredData from "./StructuredData";
 
@@ -92,7 +91,7 @@ export default function RootLayout({
       <body className="min-h-screen">
         <StructuredData />
         <LiveRefresh />
-        <PageTransition>{children}</PageTransition>
+        {children}
       </body>
     </html>
   );
