@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser, isAdmin } from "@/lib/auth";
 import AccountActions from "./AccountActions";
+import AppHeader from "../AppHeader";
 
 export default async function SettingsPage() {
   const [user, admin] = await Promise.all([
@@ -59,47 +60,7 @@ export default async function SettingsPage() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-[#111]">
-      <header className="border-b border-black/10 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link
-            href="/dashboard"
-            className="text-xl font-semibold tracking-tight"
-          >
-            Rivo Surveys
-          </Link>
-
-          <nav className="hidden items-center gap-7 text-sm text-black/65 md:flex">
-            <Link href="/dashboard" className="transition hover:text-black">
-              Dashboard
-            </Link>
-
-            <Link href="/surveys" className="transition hover:text-black">
-              Surveys
-            </Link>
-
-            <Link href="/wallet" className="transition hover:text-black">
-              Wallet
-            </Link>
-
-            <Link
-              href="/settings"
-              className="font-medium text-black"
-            >
-              Settings
-            </Link>
-
-            {admin && (
-              <Link href="/admin" className="transition hover:text-black">
-                Admin
-              </Link>
-            )}
-          </nav>
-
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">
-            {initial}
-          </div>
-        </div>
-      </header>
+      <AppHeader displayName={displayName} showAdmin={admin} />
 
       <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:py-12">
         <div className="mb-8">

@@ -60,6 +60,14 @@ article h2 {
   transform: translateY(0);
 }
 
+.page-transition-exiting {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
 /* Smooth interactive elements */
 button,
 a,

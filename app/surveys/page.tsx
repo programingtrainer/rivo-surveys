@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import AppHeader from "../AppHeader";
 
 type Survey = {
   id: string;
@@ -90,36 +91,7 @@ export default function SurveysPage() {
 
   return (
     <main className="min-h-screen bg-[#f7f8fa] text-gray-900">
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black text-sm font-black text-white shadow-sm">
-              R
-            </div>
-
-            <div>
-              <div className="text-lg font-bold tracking-tight">
-                Rivo
-              </div>
-              <div className="-mt-1 text-[11px] font-medium text-gray-400">
-                Surveys
-              </div>
-            </div>
-          </a>
-
-          <a
-            href="/wallet"
-            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50"
-          >
-            <span>Wallet</span>
-            <span className="text-gray-400">→</span>
-          </a>
-        </div>
-      </header>
+      <AppHeader />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         {/* Hero */}

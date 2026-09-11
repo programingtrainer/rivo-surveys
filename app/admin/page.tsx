@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { cpxTransactions, users, wallets, withdrawals } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 import AdminUsers from "./AdminUsers";
+import AppHeader from "../AppHeader";
 
 const ADMIN_EMAIL = "gatapro901@gmail.com";
 
@@ -104,25 +105,7 @@ export default async function AdminPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[.18em] text-slate-500">
-              Rivo Surveys
-            </p>
-            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
-              Administration
-            </h1>
-          </div>
-
-          <a
-            href="/dashboard"
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold transition hover:bg-slate-50"
-          >
-            Back to Dashboard
-          </a>
-        </div>
-      </header>
+      <AppHeader showAdmin />
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
