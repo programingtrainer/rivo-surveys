@@ -1,4 +1,7 @@
 import { isAdmin, getCurrentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { cpxTransactions, wallets } from "@/lib/schema";
+import { eq, sql } from "drizzle-orm";
 
 export default async function DashboardPage() {
   const [user, admin] = await Promise.all([
@@ -10,6 +13,41 @@ export default async function DashboardPage() {
     user?.name?.trim() ||
     user?.email?.split("@")[0] ||
     "there";
+
+  let balance = "0.00";
+  let completedSurveys = 0;
+  let totalEarned = "0.00";
+
+  if (user) {
+    const [walletResult, statsResult] = await Promise.all([
+      db
+        .select({
+          balance: wallets.balance,
+        })
+        .from(wallets)
+        .where(eq(wallets.userId, user.id))
+        .limit(1),
+
+      db
+        .select({
+          completedSurveys: sql<number>`count(*) filter (
+            where lower(${cpxTransactions.status}) = 'completed'
+          )`.as("completed_surveys"),
+          totalEarned: sql<string>`coalesce(
+            sum(${cpxTransactions.amountUsd}) filter (
+              where lower(${cpxTransactions.status}) = 'completed'
+            ),
+            0
+          )`.as("total_earned"),
+        })
+        .from(cpxTransactions)
+        .where(eq(cpxTransactions.userId, user.id)),
+    ]);
+
+    balance = String(walletResult[0]?.balance ?? "0.00");
+    completedSurveys = Number(statsResult[0]?.completedSurveys ?? 0);
+    totalEarned = String(statsResult[0]?.totalEarned ?? "0.00");
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f7f8] text-gray-900">
@@ -124,7 +162,7 @@ export default async function DashboardPage() {
             </div>
 
             <p className="mt-4 text-3xl font-bold tracking-tight">
-              $0.00
+              ${balance}
             </p>
 
             <a
@@ -147,7 +185,7 @@ export default async function DashboardPage() {
             </div>
 
             <p className="mt-4 text-3xl font-bold tracking-tight">
-              0
+              {completedSurveys}
             </p>
 
             <p className="mt-4 text-sm text-gray-500">
@@ -167,7 +205,7 @@ export default async function DashboardPage() {
             </div>
 
             <p className="mt-4 text-3xl font-bold tracking-tight">
-              $0.00
+              ${totalEarned}
             </p>
 
             <p className="mt-4 text-sm text-gray-500">

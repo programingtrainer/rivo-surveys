@@ -120,7 +120,7 @@ export async function GET(
       );
     }
 
-    const [surveyRows, withdrawalRows] = await Promise.all([
+    const [surveyRows, withdrawalRows, surveyStats] = await Promise.all([
       db
         .select({
           id: cpxTransactions.id,
@@ -156,10 +156,43 @@ export async function GET(
         .from(withdrawals)
         .where(eq(withdrawals.userId, id))
         .orderBy(asc(withdrawals.createdAt)),
+
+      db
+        .select({
+          totalSurveys: sql<number>`count(*)`.as("total_surveys"),
+          successfulSurveys: sql<number>`count(*) filter (
+            where lower(${cpxTransactions.status}) = 'completed'
+          )`.as("successful_surveys"),
+          failedSurveys: sql<number>`count(*) filter (
+            where lower(${cpxTransactions.status}) in (
+              'failed',
+              'canceled',
+              'cancelled',
+              'reversed',
+              'rejected'
+            )
+          )`.as("failed_surveys"),
+          totalEarnedUsd: sql<string>`coalesce(
+            sum(${cpxTransactions.amountUsd}) filter (
+              where lower(${cpxTransactions.status}) = 'completed'
+            ),
+            0
+          )`.as("total_earned_usd"),
+        })
+        .from(cpxTransactions)
+        .where(eq(cpxTransactions.userId, id)),
     ]);
 
+    const stats = surveyStats[0];
+
     return NextResponse.json({
-      user,
+      user: {
+        ...user,
+        totalSurveys: Number(stats?.totalSurveys ?? 0),
+        successfulSurveys: Number(stats?.successfulSurveys ?? 0),
+        failedSurveys: Number(stats?.failedSurveys ?? 0),
+        totalEarnedUsd: String(stats?.totalEarnedUsd ?? "0"),
+      },
       surveys: surveyRows,
       withdrawals: withdrawalRows,
     });

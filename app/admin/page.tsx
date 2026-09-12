@@ -13,6 +13,33 @@ export default async function AdminPage() {
 
   const nonAdmin = sql`${users.email} <> ${ADMIN_EMAIL}`;
 
+  const surveyStats = db
+    .select({
+      userId: cpxTransactions.userId,
+      totalSurveys: sql<number>`count(*)`.as("total_surveys"),
+      successfulSurveys: sql<number>`count(*) filter (
+        where lower(${cpxTransactions.status}) = 'completed'
+      )`.as("successful_surveys"),
+      failedSurveys: sql<number>`count(*) filter (
+        where lower(${cpxTransactions.status}) in (
+          'failed',
+          'canceled',
+          'cancelled',
+          'reversed',
+          'rejected'
+        )
+      )`.as("failed_surveys"),
+      totalEarnedUsd: sql<string>`coalesce(
+        sum(${cpxTransactions.amountUsd}) filter (
+          where lower(${cpxTransactions.status}) = 'completed'
+        ),
+        0
+      )`.as("total_earned_usd"),
+    })
+    .from(cpxTransactions)
+    .groupBy(cpxTransactions.userId)
+    .as("survey_stats");
+
   const [stats, walletStats, recentUsers] = await Promise.all([
     db
       .select({
@@ -39,38 +66,12 @@ export default async function AdminPage() {
         isBlocked: users.isBlocked,
         createdAt: users.createdAt,
 
-        balance: sql<string>`coalesce((
-          select ${wallets.balance}
-          from ${wallets}
-          where ${wallets.userId} = ${users.id}
-          limit 1
-        ), '0')`,
+        balance: sql<string>`coalesce(${wallets.balance}, '0')`,
 
-        totalSurveys: sql<number>`(
-          select count(*)
-          from ${cpxTransactions}
-          where ${cpxTransactions.userId} = ${users.id}
-        )`,
-
-        successfulSurveys: sql<number>`(
-          select count(*)
-          from ${cpxTransactions}
-          where ${cpxTransactions.userId} = ${users.id}
-            and lower(${cpxTransactions.status}) = 'completed'
-        )`,
-
-        failedSurveys: sql<number>`(
-          select count(*)
-          from ${cpxTransactions}
-          where ${cpxTransactions.userId} = ${users.id}
-            and lower(${cpxTransactions.status}) in (
-              'failed',
-              'canceled',
-              'cancelled',
-              'reversed',
-              'rejected'
-            )
-        )`,
+        totalSurveys: sql<number>`coalesce(${surveyStats.totalSurveys}, 0)`,
+        successfulSurveys: sql<number>`coalesce(${surveyStats.successfulSurveys}, 0)`,
+        failedSurveys: sql<number>`coalesce(${surveyStats.failedSurveys}, 0)`,
+        totalEarnedUsd: sql<string>`coalesce(${surveyStats.totalEarnedUsd}, 0)`,
 
         withdrawalCount: sql<number>`(
           select count(*)
@@ -84,19 +85,15 @@ export default async function AdminPage() {
           where ${withdrawals.userId} = ${users.id}
             and lower(${withdrawals.status}) = 'paid'
         ), '0')`,
-
-        totalEarnedUsd: sql<string>`coalesce((
-          select sum(${cpxTransactions.amountUsd})
-          from ${cpxTransactions}
-          where ${cpxTransactions.userId} = ${users.id}
-            and lower(${cpxTransactions.status}) = 'completed'
-        ), '0')`,
       })
       .from(users)
+      .leftJoin(wallets, eq(wallets.userId, users.id))
+      .leftJoin(surveyStats, eq(surveyStats.userId, users.id))
       .where(nonAdmin)
       .orderBy(desc(users.createdAt))
       .limit(100),
   ]);
+
 
   const total = Number(stats[0]?.total ?? 0);
   const blocked = Number(stats[0]?.blocked ?? 0);
