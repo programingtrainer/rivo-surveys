@@ -211,48 +211,6 @@ export async function PATCH(request: Request) {
 
     const withdrawal = claimed[0];
 
-    // TEMPORARY DEMO MODE:
-    // The dedicated test account is marked as paid without calling FaucetPay.
-    // Remove this block after the withdrawal-flow test is complete.
-    const demoUser = await db
-      .select({ email: users.email })
-      .from(users)
-      .where(eq(users.id, withdrawal.userId))
-      .limit(1);
-
-    if (demoUser[0]?.email === "rivo-test@example.com") {
-      const demoPaid = await db
-        .update(withdrawals)
-        .set({
-          status: "paid",
-          providerPayoutId: `demo-test-${withdrawal.id}`,
-          failureReason: null,
-          updatedAt: new Date(),
-        })
-        .where(
-          sql`${withdrawals.id} = ${withdrawal.id} AND ${withdrawals.status} = 'processing'`
-        )
-        .returning({
-          id: withdrawals.id,
-          status: withdrawals.status,
-          providerPayoutId: withdrawals.providerPayoutId,
-          netAmount: withdrawals.netAmount,
-        });
-
-      if (!demoPaid.length) {
-        return NextResponse.json(
-          { error: "Unable to finalize demo withdrawal." },
-          { status: 409 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        withdrawal: demoPaid[0],
-        message: "Demo payout marked as paid successfully.",
-      });
-    }
-
     if (withdrawal.currency !== "USDT") {
       await db
         .update(withdrawals)
