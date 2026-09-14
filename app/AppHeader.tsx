@@ -37,7 +37,7 @@ export default function AppHeader({
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-3 sm:gap-4 sm:px-6 lg:px-8">
         <Link
           href="/dashboard"
           className="group flex shrink-0 items-center gap-2.5"
@@ -47,14 +47,14 @@ export default function AppHeader({
             R
           </span>
 
-          <span className="text-lg font-bold tracking-tight text-gray-950 sm:text-xl">
+          <span className="hidden text-lg font-bold tracking-tight text-gray-950 sm:inline sm:text-xl">
             Rivo Surveys
           </span>
         </Link>
 
         <nav
           aria-label="Main navigation"
-          className="absolute left-1/2 flex min-w-0 -translate-x-1/2 items-center gap-1 overflow-x-auto scrollbar-none"
+          className="absolute left-1/2 flex min-w-0 max-w-[calc(100%-7rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto scrollbar-none sm:max-w-[calc(100%-18rem)]"
         >
           {navItems.map((item) => {
             const active = isActive(item.key);

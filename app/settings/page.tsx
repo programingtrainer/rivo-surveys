@@ -80,7 +80,7 @@ export default async function SettingsPage() {
 
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
           <aside className="lg:sticky lg:top-6">
-            <div className="overflow-hidden rounded-3xl border border-black/10 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)]">
+            <div className="motion-card overflow-hidden rounded-3xl border border-black/10 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)]">
               <div className="border-b border-black/10 p-5">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">
                   Settings
@@ -146,7 +146,7 @@ export default async function SettingsPage() {
           <div className="min-w-0 space-y-6">
             <section
               id="account"
-              className="scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
+              className="motion-card scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
             >
               <div className="mb-7">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">
@@ -214,7 +214,7 @@ export default async function SettingsPage() {
 
             <section
               id="security"
-              className="scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
+              className="motion-card scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
             >
               <div className="mb-6">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">
@@ -258,7 +258,7 @@ export default async function SettingsPage() {
 
             <section
               id="surveys"
-              className="scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
+              className="motion-card scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
             >
               <div className="mb-6">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">
@@ -306,7 +306,7 @@ export default async function SettingsPage() {
 
             <section
               id="wallet"
-              className="scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
+              className="motion-card scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
             >
               <div className="mb-6">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">
@@ -347,7 +347,7 @@ export default async function SettingsPage() {
 
             <section
               id="documentation"
-              className="scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
+              className="motion-card scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
             >
               <div className="mb-6">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">
@@ -396,7 +396,7 @@ export default async function SettingsPage() {
 
             <section
               id="legal"
-              className="scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
+              className="motion-card scroll-mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8"
             >
               <div className="mb-6">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">

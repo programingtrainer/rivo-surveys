@@ -198,7 +198,7 @@ export default function SurveysPage() {
 
         {/* Loading */}
         {loading && !error && (
-          <div className="mt-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="motion-stagger mt-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             <SurveySkeleton />
             <SurveySkeleton />
             <SurveySkeleton />
@@ -236,11 +236,11 @@ export default function SurveysPage() {
 
         {/* Survey cards */}
         {!loading && !error && surveys.length > 0 && (
-          <div className="mt-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="motion-stagger mt-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {surveys.map((survey) => (
               <article
                 key={survey.id}
-                className="group relative flex flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-gray-300 hover:shadow-lg"
+                className="motion-card group relative flex flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-lg"
               >
                 {/* Recommended badge */}
                 {survey.top > 0 && (

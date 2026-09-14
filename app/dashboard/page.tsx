@@ -1,3 +1,4 @@
+import AppHeader from "../AppHeader";
 import { isAdmin, getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cpxTransactions, wallets } from "@/lib/schema";
@@ -51,69 +52,8 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f8] text-gray-900">
-      <header className="sticky top-0 z-20 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-6">
-          <a
-            href="/dashboard"
-            className="flex shrink-0 items-center gap-2.5"
-            aria-label="Rivo Surveys Dashboard"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-black text-base font-black tracking-tight text-white shadow-sm">
-              R
-            </span>
-            <span className="text-lg font-bold tracking-tight text-gray-950 sm:text-xl">
-              Rivo Surveys
-            </span>
-          </a>
+      <AppHeader displayName={displayName} showAdmin={admin} />
 
-          <nav className="hidden items-center gap-1 md:flex">
-            <a
-              href="/dashboard"
-              className="rounded-lg bg-gray-100 px-3.5 py-2 text-sm font-semibold text-gray-950 transition hover:bg-gray-200"
-            >
-              Dashboard
-            </a>
-
-            <a
-              href="/surveys"
-              className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-950"
-            >
-              Surveys
-            </a>
-
-            <a
-              href="/wallet"
-              className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-950"
-            >
-              Wallet
-            </a>
-
-            <a
-              href="/settings"
-              className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-950"
-            >
-              Settings
-            </a>
-
-            {admin && (
-              <a
-                href="/admin"
-                className="ml-1 rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800"
-              >
-                Admin
-              </a>
-            )}
-          </nav>
-
-          <a
-            href="/settings"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700 transition hover:bg-gray-200"
-            aria-label="Account settings"
-          >
-            {displayName.charAt(0).toUpperCase()}
-          </a>
-        </div>
-      </header>
 
       <div className="mx-auto max-w-7xl px-5 py-8 sm:px-6 sm:py-10">
         <section className="rounded-3xl bg-black px-6 py-8 text-white shadow-sm sm:px-8 sm:py-10">
@@ -149,8 +89,8 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="motion-stagger mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="motion-card rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-gray-500">
                 Available balance
@@ -173,7 +113,7 @@ export default async function DashboardPage() {
             </a>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="motion-card rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-gray-500">
                 Completed surveys
@@ -193,7 +133,7 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-1">
+          <div className="motion-card rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-gray-500">
                 Total earned
@@ -214,8 +154,8 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="mt-7 grid gap-6 lg:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
+        <section className="motion-stagger mt-7 grid gap-6 lg:grid-cols-3">
+          <div className="motion-card rounded-2xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold">
@@ -228,7 +168,7 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="motion-stagger mt-6 grid gap-4 sm:grid-cols-2">
               <a
                 href="/surveys"
                 className="group rounded-xl border border-gray-200 p-5 transition hover:border-gray-400 hover:bg-gray-50"
@@ -265,7 +205,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="motion-card rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold">
               Account
             </h2>

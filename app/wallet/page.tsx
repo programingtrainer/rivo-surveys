@@ -113,7 +113,7 @@ export default async function WalletPage() {
 
           </section>
 
-          <section className="rounded-3xl border border-black/10 bg-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8">
+          <section className="motion-card rounded-3xl border border-black/10 bg-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">
               Wallet status
             </p>
@@ -153,7 +153,7 @@ export default async function WalletPage() {
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <section className="rounded-3xl border border-black/10 bg-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8">
+          <section className="motion-card rounded-3xl border border-black/10 bg-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8">
             <div className="flex items-start justify-between gap-5">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">
@@ -178,7 +178,7 @@ export default async function WalletPage() {
             <WithdrawalForm balance={balance} />
           </section>
 
-          <section className="rounded-3xl border border-black/10 bg-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8">
+          <section className="motion-card rounded-3xl border border-black/10 bg-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.04)] sm:p-8">
             <div className="flex items-start justify-between gap-5">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-black/40">

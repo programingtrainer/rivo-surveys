@@ -112,7 +112,7 @@ export default async function AdminPage() {
           </p>
         </div>
 
-        <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="motion-stagger mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             ["Total users", total],
             ["Active users", active],
@@ -121,7 +121,7 @@ export default async function AdminPage() {
           ].map(([label, value]) => (
             <div
               key={String(label)}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              className="motion-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
             >
               <p className="text-sm text-slate-500">{label}</p>
               <p className="mt-2 text-3xl font-bold">{value}</p>
@@ -129,7 +129,7 @@ export default async function AdminPage() {
           ))}
         </section>
 
-        <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="motion-card mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[.16em] text-slate-400">
