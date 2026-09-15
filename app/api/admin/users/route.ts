@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { desc, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { cpxTransactions, users, wallets, withdrawals } from "@/lib/schema";
+import { cpxTransactions, referrals, users, wallets, withdrawals } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 
 const ADMIN_EMAIL = "gatapro901@gmail.com";
@@ -72,6 +72,13 @@ export async function GET() {
         where ${cpxTransactions.userId} = ${users.id}
           and lower(${cpxTransactions.status}) = 'completed'
       ), '0')`,
+
+      successfulReferrals: sql<number>`(
+        select count(*)
+        from ${referrals}
+        where ${referrals.referrerUserId} = ${users.id}
+          and lower(${referrals.status}) = 'qualified'
+      )`,
     })
     .from(users)
     .where(ne(users.email, ADMIN_EMAIL))

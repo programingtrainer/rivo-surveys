@@ -3,7 +3,6 @@ import { pgTable, uuid, text, timestamp, numeric, boolean, index, uniqueIndex } 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(), email: text("email").notNull().unique(), name: text("name"), passwordHash: text("password_hash"), googleId: text("google_id").unique(), avatarUrl: text("avatar_url"),
   isBlocked: boolean("is_blocked").notNull().default(false),
-  referralCode: text("referral_code").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -29,28 +28,6 @@ export const cpxTransactions = pgTable("cpx_transactions", {
 }, (table) => ({
   userIdIdx: index("cpx_transactions_user_id_idx").on(table.userId),
   statusIdx: index("cpx_transactions_status_idx").on(table.status),
-}));
-
-
-export const surveyAttempts = pgTable("survey_attempts", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  offerId: text("offer_id").notNull(),
-  status: text("status").notNull().default("started"),
-  type: text("type"),
-  transactionId: text("transaction_id").unique(),
-  amountLocal: numeric("amount_local", { precision: 12, scale: 2 }),
-  amountUsd: numeric("amount_usd", { precision: 12, scale: 4 }),
-  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
-  completedAt: timestamp("completed_at", { withTimezone: true }),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  userIdIdx: index("survey_attempts_user_id_idx").on(table.userId),
-  offerIdIdx: index("survey_attempts_offer_id_idx").on(table.offerId),
-  statusIdx: index("survey_attempts_status_idx").on(table.status),
-  startedAtIdx: index("survey_attempts_started_at_idx").on(table.startedAt),
 }));
 
 export const withdrawals = pgTable("withdrawals", {
@@ -96,36 +73,4 @@ export const telegramCodeRedemptions = pgTable("telegram_code_redemptions", {
   codeUserUnique: uniqueIndex("telegram_code_user_unique").on(table.codeId, table.userId),
   codeIdIdx: index("telegram_code_redemptions_code_id_idx").on(table.codeId),
   userIdIdx: index("telegram_code_redemptions_user_id_idx").on(table.userId),
-}));
-
-
-export const referrals = pgTable("referrals", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  referrerUserId: uuid("referrer_user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  referredUserId: uuid("referred_user_id")
-    .notNull()
-    .unique()
-    .references(() => users.id, { onDelete: "cascade" }),
-  status: text("status").notNull().default("pending"),
-  qualifiedAt: timestamp("qualified_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  referrerUserIdIdx: index("referrals_referrer_user_id_idx").on(table.referrerUserId),
-  statusIdx: index("referrals_status_idx").on(table.status),
-}));
-
-export const referralRewards = pgTable("referral_rewards", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  milestone: numeric("milestone", { precision: 10, scale: 0 }).notNull(),
-  rewardUsd: numeric("reward_usd", { precision: 12, scale: 2 }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  userMilestoneUnique: uniqueIndex("referral_rewards_user_milestone_unique")
-    .on(table.userId, table.milestone),
-  userIdIdx: index("referral_rewards_user_id_idx").on(table.userId),
 }));

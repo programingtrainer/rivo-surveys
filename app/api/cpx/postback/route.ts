@@ -94,16 +94,30 @@ export async function GET(request: Request) {
      */
     const rewardUsd = amountLocal / 1000;
 
+    /*
+     * status=1:
+     * - type=complete -> successful survey
+     * - type=out      -> screened out / out, but still credited by CPX
+     * - anything else -> failed/unknown attempt
+     */
     if (status === "1") {
+      const normalizedType = String(type || "").trim().toLowerCase();
+
+      const attemptStatus =
+        normalizedType === "complete"
+          ? "completed"
+          : normalizedType === "out"
+            ? "out"
+            : "failed";
+
       /*
-       * Atomic credit:
+       * Atomic financial operation:
        *
-       * 1. Insert the transaction.
-       * 2. ON CONFLICT prevents the same transaction_id from
-       *    being credited again.
-       * 3. Only if the insert succeeds, update/create the wallet.
-       *
-       * Everything happens inside ONE PostgreSQL statement.
+       * 1. Insert CPX transaction.
+       * 2. Prevent duplicate transaction credit.
+       * 3. Qualify referral ONLY for type=complete.
+       * 4. Calculate cumulative referral milestones.
+       * 5. Credit CPX reward + referral milestone rewards.
        */
       const result = await db.execute(sql`
         WITH inserted AS (
@@ -132,26 +146,160 @@ export async function GET(request: Request) {
             ${ipClick}
           )
           ON CONFLICT (transaction_id) DO NOTHING
-          RETURNING user_id, amount_local
+          RETURNING user_id, amount_local, type
+        ),
+
+        qualified AS (
+          UPDATE referrals r
+          SET
+            status = 'qualified',
+            qualified_at = NOW()
+          FROM inserted i
+          WHERE r.referred_user_id = i.user_id
+            AND r.status = 'pending'
+            AND r.referrer_user_id <> r.referred_user_id
+            AND LOWER(COALESCE(i.type, '')) = 'complete'
+          RETURNING r.referrer_user_id
+        ),
+
+        milestone_data (milestone, total_reward, delta_reward) AS (
+          VALUES
+            (1,   0.02::numeric, 0.02::numeric),
+            (5,   0.12::numeric, 0.10::numeric),
+            (20,  0.30::numeric, 0.18::numeric),
+            (30,  0.42::numeric, 0.12::numeric),
+            (50,  0.85::numeric, 0.43::numeric),
+            (70,  1.20::numeric, 0.35::numeric),
+            (100, 5.00::numeric, 3.80::numeric)
+        ),
+
+        referrer_counts AS (
+          SELECT
+            q.referrer_user_id,
+            (
+              SELECT COUNT(*)::int
+              FROM referrals r
+              WHERE r.referrer_user_id = q.referrer_user_id
+                AND r.status = 'qualified'
+            ) + COUNT(*)::int AS qualified_count
+          FROM qualified q
+          GROUP BY q.referrer_user_id
+        ),
+
+        new_rewards AS (
+          INSERT INTO referral_rewards (
+            user_id,
+            milestone,
+            reward_usd
+          )
+          SELECT
+            rc.referrer_user_id,
+            md.milestone,
+            md.total_reward
+          FROM referrer_counts rc
+          CROSS JOIN milestone_data md
+          WHERE rc.qualified_count >= md.milestone
+            AND NOT EXISTS (
+              SELECT 1
+              FROM referral_rewards rr
+              WHERE rr.user_id = rc.referrer_user_id
+                AND rr.milestone = md.milestone
+            )
+          ON CONFLICT (user_id, milestone) DO NOTHING
+          RETURNING user_id, milestone
+        ),
+
+        wallet_changes AS (
+          SELECT
+            user_id,
+            SUM(amount)::numeric AS amount
+          FROM (
+            SELECT
+              user_id,
+              amount_local::numeric / 1000 AS amount
+            FROM inserted
+
+            UNION ALL
+
+            SELECT
+              nr.user_id,
+              md.delta_reward AS amount
+            FROM new_rewards nr
+            JOIN milestone_data md
+              ON md.milestone = nr.milestone
+          ) changes
+          GROUP BY user_id
+        ),
+
+        wallet_credit AS (
+          INSERT INTO wallets (
+            user_id,
+            balance,
+            updated_at
+          )
+          SELECT
+            user_id,
+            amount,
+            NOW()
+          FROM wallet_changes
+          ON CONFLICT (user_id)
+          DO UPDATE SET
+            balance = wallets.balance + EXCLUDED.balance,
+            updated_at = NOW()
+          RETURNING user_id
         )
-        INSERT INTO wallets (
-          user_id,
-          balance,
-          updated_at
-        )
+
         SELECT
-          user_id,
-          (amount_local::numeric / 1000),
-          NOW()
-        FROM inserted
-        ON CONFLICT (user_id)
-        DO UPDATE SET
-          balance = wallets.balance + EXCLUDED.balance,
-          updated_at = NOW()
-        RETURNING user_id
+          (SELECT COUNT(*) FROM inserted)::int AS inserted_count,
+          (SELECT COUNT(*) FROM qualified)::int AS qualified_count,
+          (SELECT COUNT(*) FROM new_rewards)::int AS new_reward_count
       `);
 
-      const credited = result.rows.length > 0;
+      /*
+       * Link this CPX postback to the survey attempt that
+       * started most recently for the same user + offer.
+       *
+       * We intentionally match only "started" attempts so
+       * duplicate CPX callbacks cannot rewrite an old attempt.
+       */
+      const attemptResult = await db.execute(sql`
+        UPDATE survey_attempts
+        SET
+          status = ${attemptStatus},
+          type = ${type},
+          transaction_id = ${transactionId},
+          amount_local = ${amountLocal.toFixed(2)},
+          amount_usd = ${
+            amountUsd !== null && Number.isFinite(amountUsd)
+              ? amountUsd.toFixed(4)
+              : rewardUsd.toFixed(4)
+          },
+          completed_at = NOW(),
+          updated_at = NOW()
+        WHERE id = (
+          SELECT id
+          FROM survey_attempts
+          WHERE user_id = ${userId}
+            AND offer_id = ${offerId}
+            AND status = 'started'
+            AND started_at >= NOW() - INTERVAL '24 hours'
+          ORDER BY started_at DESC
+          LIMIT 1
+        )
+        RETURNING id
+      `);
+
+      const row = result.rows[0] as {
+        inserted_count: number;
+        qualified_count: number;
+        new_reward_count: number;
+      };
+
+      const credited = Number(row?.inserted_count ?? 0) > 0;
+      const referralQualified =
+        Number(row?.qualified_count ?? 0) > 0;
+      const referralRewardsGranted =
+        Number(row?.new_reward_count ?? 0);
 
       return NextResponse.json({
         success: true,
@@ -159,17 +307,21 @@ export async function GET(request: Request) {
         duplicate: !credited,
         transaction_id: transactionId,
         reward_usd: credited ? rewardUsd : 0,
+        survey_attempt_updated: attemptResult.rows.length > 0,
+        survey_status: attemptStatus,
+        referral_qualified: referralQualified,
+        referral_rewards_granted: referralRewardsGranted,
       });
     }
 
+    /*
+     * status=2 = CPX cancellation/reversal.
+     *
+     * The financial transaction is reversed only once.
+     * Referral qualification/rewards are intentionally NOT
+     * reversed in this v1 implementation.
+     */
     if (status === "2") {
-      /*
-       * Atomic reversal:
-       *
-       * The transaction is changed from completed -> canceled
-       * only once. Only that successful transition can subtract
-       * the reward from the wallet.
-       */
       const result = await db.execute(sql`
         WITH reversed AS (
           UPDATE cpx_transactions
@@ -192,6 +344,47 @@ export async function GET(request: Request) {
         RETURNING wallets.user_id
       `);
 
+      /*
+       * If this transaction belongs to a survey attempt,
+       * mark that attempt as failed/canceled.
+       */
+      const attemptResult = await db.execute(sql`
+        UPDATE survey_attempts
+        SET
+          status = 'failed',
+          type = ${type},
+          transaction_id = ${transactionId},
+          amount_local = ${amountLocal.toFixed(2)},
+          amount_usd = ${
+            amountUsd !== null && Number.isFinite(amountUsd)
+              ? amountUsd.toFixed(4)
+              : rewardUsd.toFixed(4)
+          },
+          completed_at = NOW(),
+          updated_at = NOW()
+        WHERE id = (
+          SELECT id
+          FROM survey_attempts
+          WHERE (
+            transaction_id = ${transactionId}
+            OR (
+              user_id = ${userId}
+              AND offer_id = ${offerId}
+              AND status = 'started'
+              AND started_at >= NOW() - INTERVAL '24 hours'
+            )
+          )
+          ORDER BY
+            CASE
+              WHEN transaction_id = ${transactionId} THEN 0
+              ELSE 1
+            END,
+            started_at DESC
+          LIMIT 1
+        )
+        RETURNING id
+      `);
+
       const reversed = result.rows.length > 0;
 
       return NextResponse.json({
@@ -199,14 +392,50 @@ export async function GET(request: Request) {
         reversed,
         duplicate: !reversed,
         transaction_id: transactionId,
+        survey_attempt_updated: attemptResult.rows.length > 0,
+        survey_status: "failed",
       });
     }
+
+    /*
+     * Unknown CPX status:
+     * record it as a failed attempt if a matching started
+     * attempt exists, but do not touch the wallet.
+     */
+    const attemptResult = await db.execute(sql`
+      UPDATE survey_attempts
+      SET
+        status = 'failed',
+        type = ${type},
+        transaction_id = ${transactionId},
+        amount_local = ${amountLocal.toFixed(2)},
+        amount_usd = ${
+          amountUsd !== null && Number.isFinite(amountUsd)
+            ? amountUsd.toFixed(4)
+            : rewardUsd.toFixed(4)
+        },
+        completed_at = NOW(),
+        updated_at = NOW()
+      WHERE id = (
+        SELECT id
+        FROM survey_attempts
+        WHERE user_id = ${userId}
+          AND offer_id = ${offerId}
+          AND status = 'started'
+          AND started_at >= NOW() - INTERVAL '24 hours'
+        ORDER BY started_at DESC
+        LIMIT 1
+      )
+      RETURNING id
+    `);
 
     return NextResponse.json({
       success: true,
       ignored: true,
       status,
       transaction_id: transactionId,
+      survey_attempt_updated: attemptResult.rows.length > 0,
+      survey_status: "failed",
     });
   } catch (error) {
     console.error("CPX postback error:", error);

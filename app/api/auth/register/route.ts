@@ -5,7 +5,12 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { users, sessions, wallets } from "@/lib/schema";
+import {
+  users,
+  sessions,
+  wallets,
+  referrals,
+} from "@/lib/schema";
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -20,6 +25,13 @@ function isStrongPassword(password: string) {
     /[^A-Za-z0-9]/.test(password) &&
     !/\s/.test(password)
   );
+}
+
+function generateReferralCode() {
+  return `RIVO-${crypto
+    .randomBytes(5)
+    .toString("hex")
+    .toUpperCase()}`;
 }
 
 async function verifyTurnstile(token: string) {
@@ -43,7 +55,10 @@ async function verifyTurnstile(token: string) {
   );
 
   if (!response.ok) {
-    console.error("Turnstile siteverify HTTP error:", response.status);
+    console.error(
+      "Turnstile siteverify HTTP error:",
+      response.status
+    );
     return false;
   }
 
@@ -69,7 +84,9 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const name =
-      typeof body.name === "string" ? body.name.trim() : "";
+      typeof body.name === "string"
+        ? body.name.trim()
+        : "";
 
     const email =
       typeof body.email === "string"
@@ -84,6 +101,11 @@ export async function POST(request: Request) {
     const turnstileToken =
       typeof body.turnstileToken === "string"
         ? body.turnstileToken
+        : "";
+
+    const referralCode =
+      typeof body.referralCode === "string"
+        ? body.referralCode.trim().toUpperCase()
         : "";
 
     if (!name || name.length > 100) {
@@ -146,6 +168,22 @@ export async function POST(request: Request) {
       );
     }
 
+    let referrerUserId: string | null = null;
+
+    if (referralCode) {
+      const referrer = await db
+        .select({
+          id: users.id,
+        })
+        .from(users)
+        .where(eq(users.referralCode, referralCode))
+        .limit(1);
+
+      if (referrer.length > 0) {
+        referrerUserId = referrer[0].id;
+      }
+    }
+
     const passwordHash =
       await bcrypt.hash(password, 12);
 
@@ -165,6 +203,7 @@ export async function POST(request: Request) {
       );
 
     const userId = crypto.randomUUID();
+    const newReferralCode = generateReferralCode();
 
     await db.batch([
       db
@@ -174,17 +213,28 @@ export async function POST(request: Request) {
           email,
           name,
           passwordHash,
+          referralCode: newReferralCode,
         }),
+
       db.insert(wallets).values({
         userId,
         balance: "0",
       }),
+
       db.insert(sessions).values({
         userId,
         tokenHash,
         expiresAt,
       }),
     ]);
+
+    if (referrerUserId && referrerUserId !== userId) {
+      await db.insert(referrals).values({
+        referrerUserId,
+        referredUserId: userId,
+        status: "pending",
+      });
+    }
 
     const cookieStore = await cookies();
 
@@ -194,8 +244,7 @@ export async function POST(request: Request) {
       {
         httpOnly: true,
         secure:
-          process.env.NODE_ENV ===
-          "production",
+          process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
         maxAge:

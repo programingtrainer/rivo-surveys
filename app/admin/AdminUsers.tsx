@@ -11,10 +11,16 @@ type User = {
   balance: string | number;
   totalSurveys: number | string;
   successfulSurveys: number | string;
+  outSurveys?: number | string;
   failedSurveys: number | string;
+  startedSurveys?: number | string;
   withdrawalCount: number | string;
   totalWithdrawn: string | number;
   totalEarnedUsd: string | number;
+  successfulReferrals: number | string;
+  pendingReferrals?: number | string;
+  referralEarnings?: string | number;
+  referralCode?: string | null;
 };
 
 type Survey = {
@@ -45,6 +51,19 @@ type Withdrawal = {
   updatedAt: string;
 };
 
+type SurveyAttempt = {
+  id: string;
+  offerId: string;
+  status: string;
+  type: string | null;
+  transactionId: string | null;
+  amountLocal: string | number | null;
+  amountUsd: string | number | null;
+  startedAt: string;
+  completedAt: string | null;
+  updatedAt: string;
+};
+
 type UserDetails = {
   user: User & {
     googleId: string | null;
@@ -54,7 +73,17 @@ type UserDetails = {
     totalRequestedWithdrawals: string | number;
   };
   surveys: Survey[];
+  surveyAttempts: SurveyAttempt[];
   withdrawals: Withdrawal[];
+  referrals: {
+    id: string;
+    referredUserId: string;
+    referredName: string | null;
+    referredEmail: string;
+    status: string;
+    qualifiedAt: string | null;
+    createdAt: string;
+  }[];
 };
 
 function money(value: string | number | null | undefined) {
@@ -75,24 +104,37 @@ function date(value: string | Date) {
   return d.toISOString().replace("T", " ").slice(0, 16);
 }
 
-function statusClass(status: string) {
-  const value = status.toLowerCase();
+function surveyResult(status: string, type?: string | null) {
+  const s = status.toLowerCase();
+  const t = String(type ?? "").toLowerCase();
+
+  if (s === "completed" && t === "complete") return "Completed";
+  if (s === "completed" && t === "out") return "Out";
+  if (s === "started") return "Started";
+  if (s === "failed") return "Failed";
+  if (s === "canceled" || s === "cancelled" || s === "reversed") {
+    return "Failed";
+  }
+
+  return s || "Unknown";
+}
+
+function statusClass(status: string, type?: string | null) {
+  const value = surveyResult(status, type).toLowerCase();
 
   if (value === "completed" || value === "paid") {
     return "bg-emerald-50 text-emerald-700";
   }
 
-  if (
-    value === "failed" ||
-    value === "canceled" ||
-    value === "cancelled" ||
-    value === "reversed" ||
-    value === "rejected"
-  ) {
+  if (value === "out" || value === "started") {
+    return "bg-amber-50 text-amber-700";
+  }
+
+  if (value === "failed") {
     return "bg-red-50 text-red-700";
   }
 
-  return "bg-amber-50 text-amber-700";
+  return "bg-slate-100 text-slate-600";
 }
 
 export default function AdminUsers({
@@ -296,6 +338,10 @@ export default function AdminUsers({
                 </th>
 
                 <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
+                  Referrals
+                </th>
+
+                <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
                   Successful
                 </th>
 
@@ -349,6 +395,12 @@ export default function AdminUsers({
 
                   <td className="px-5 py-4 text-sm font-semibold">
                     {count(u.totalSurveys)}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                      {count(u.successfulReferrals)}
+                    </span>
                   </td>
 
                   <td className="px-5 py-4">
@@ -426,7 +478,7 @@ export default function AdminUsers({
               {!list.length && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-5 py-12 text-center text-sm text-slate-500"
                   >
                     No users match your search.
@@ -533,6 +585,46 @@ export default function AdminUsers({
 
                       <p className="mt-2 text-2xl font-bold text-red-700">
                         {count(details.user.failedSurveys)}
+                      </p>
+                    </div>
+ 
+                    <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-amber-600">
+                        Out
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-amber-700">
+                        {count(details.user.outSurveys)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-blue-600">
+                        Started
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-blue-700">
+                        {count(details.user.startedSurveys)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-violet-600">
+                        Successful referrals
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-violet-700">
+                        {count(details.user.successfulReferrals)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-amber-600">
+                        Pending referrals
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-amber-700">
+                        {count(details.user.pendingReferrals)}
                       </p>
                     </div>
 
@@ -656,6 +748,198 @@ export default function AdminUsers({
                             : "Email / password"}
                         </p>
                       </div>
+
+                      <div>
+                        <p className="text-xs text-slate-400">
+                          Referral code
+                        </p>
+
+                        <p className="mt-1 break-all font-mono text-sm font-semibold">
+                          {details.user.referralCode || "—"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-slate-400">
+                          Referral earnings
+                        </p>
+
+                        <p className="mt-1 font-semibold text-violet-700">
+                          {money(details.user.referralEarnings)}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section>
+                    <div className="mb-3 flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold">
+                          Referral activity
+                        </h4>
+
+                        <p className="text-sm text-slate-500">
+                          People referred by this user and their qualification status.
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                        {details.referrals.length} referrals
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                      <table className="w-full min-w-[850px] text-left text-sm">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3">User</th>
+                            <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">Referred</th>
+                            <th className="px-4 py-3">Qualified</th>
+                          </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-slate-100">
+                          {details.referrals.map((referral) => (
+                            <tr key={referral.id}>
+                              <td className="px-4 py-3">
+                                <p className="font-semibold">
+                                  {referral.referredName || "Unnamed user"}
+                                </p>
+
+                                <p className="break-all text-xs text-slate-500">
+                                  {referral.referredEmail}
+                                </p>
+                              </td>
+
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                    referral.status === "qualified"
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : referral.status === "pending"
+                                        ? "bg-amber-50 text-amber-700"
+                                        : "bg-slate-100 text-slate-600"
+                                  }`}
+                                >
+                                  {referral.status}
+                                </span>
+                              </td>
+
+                              <td className="px-4 py-3 text-slate-500">
+                                {date(referral.createdAt)}
+                              </td>
+
+                              <td className="px-4 py-3 text-slate-500">
+                                {referral.qualifiedAt
+                                  ? date(referral.qualifiedAt)
+                                  : "—"}
+                              </td>
+                            </tr>
+                          ))}
+
+                          {!details.referrals.length && (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="px-4 py-8 text-center text-sm text-slate-500"
+                              >
+                                No referrals yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section>
+                    <div className="mb-3 flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold">
+                          Survey attempts
+                        </h4>
+
+                        <p className="text-sm text-slate-500">
+                          Every survey start recorded by Rivo, including attempts that have not received a CPX result yet.
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                        {details.surveyAttempts.length} attempts
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                      <table className="w-full min-w-[950px] text-left text-sm">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3">Offer</th>
+                            <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">Type</th>
+                            <th className="px-4 py-3">Reward</th>
+                            <th className="px-4 py-3">Transaction</th>
+                            <th className="px-4 py-3">Started</th>
+                            <th className="px-4 py-3">Completed</th>
+                          </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-slate-100">
+                          {details.surveyAttempts.map((attempt) => (
+                            <tr key={attempt.id}>
+                              <td className="px-4 py-3 font-medium">
+                                {attempt.offerId}
+                              </td>
+
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(
+                                    attempt.status,
+                                    attempt.type
+                                  )}`}
+                                >
+                                  {surveyResult(attempt.status, attempt.type)}
+                                </span>
+                              </td>
+
+                              <td className="px-4 py-3 text-slate-500">
+                                {attempt.type || "—"}
+                              </td>
+
+                              <td className="px-4 py-3">
+                                {attempt.amountUsd == null
+                                  ? "—"
+                                  : money(attempt.amountUsd)}
+                              </td>
+
+                              <td className="px-4 py-3 break-all font-mono text-xs text-slate-500">
+                                {attempt.transactionId || "—"}
+                              </td>
+
+                              <td className="px-4 py-3 text-slate-500">
+                                {date(attempt.startedAt)}
+                              </td>
+
+                              <td className="px-4 py-3 text-slate-500">
+                                {attempt.completedAt
+                                  ? date(attempt.completedAt)
+                                  : "—"}
+                              </td>
+                            </tr>
+                          ))}
+
+                          {!details.surveyAttempts.length && (
+                            <tr>
+                              <td
+                                colSpan={7}
+                                className="px-4 py-8 text-center text-sm text-slate-500"
+                              >
+                                No survey attempts recorded yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </section>
 
@@ -735,7 +1019,11 @@ export default function AdminUsers({
                                     survey.status
                                   )}`}
                                 >
-                                  {survey.status}
+                                  {String(survey.status).toLowerCase() === "completed"
+                                    ? "Completed"
+                                    : String(survey.status).toLowerCase() === "out"
+                                      ? "Out"
+                                      : "Failed"}
                                 </span>
                               </td>
 

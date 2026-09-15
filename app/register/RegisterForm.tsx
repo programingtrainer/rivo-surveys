@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Turnstile } from "@marsidev/react-turnstile";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 
@@ -9,6 +10,8 @@ type RegisterFormProps = {
 };
 
 export default function RegisterForm({ siteKey }: RegisterFormProps) {
+  const searchParams = useSearchParams();
+  const referralCode = searchParams.get("ref") || "";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,6 +83,7 @@ export default function RegisterForm({ siteKey }: RegisterFormProps) {
           email,
           password,
           turnstileToken,
+          referralCode,
         }),
       });
 
@@ -124,7 +128,7 @@ export default function RegisterForm({ siteKey }: RegisterFormProps) {
           </p>
         </div>
 
-        <a href="/api/auth/google/start" className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 font-medium text-gray-700 transition hover:bg-gray-50"><span className="text-lg font-bold">G</span>Continue with Google</a>
+        <a href={referralCode ? `/api/auth/google/start?ref=${encodeURIComponent(referralCode)}` : "/api/auth/google/start"} className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 font-medium text-gray-700 transition hover:bg-gray-50"><span className="text-lg font-bold">G</span>Continue with Google</a>
 
         <div className="my-6 flex items-center gap-4"><div className="h-px flex-1 bg-gray-200" /><span className="text-sm text-gray-400">or</span><div className="h-px flex-1 bg-gray-200" /></div>
 

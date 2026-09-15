@@ -324,6 +324,41 @@ export default function SurveysPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex w-full items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3.5 text-sm font-bold text-white transition group-hover:bg-gray-800"
+                      onClick={async (event) => {
+                        event.preventDefault();
+
+                        try {
+                          const response = await fetch("/api/surveys/start", {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                              offerId: survey.id,
+                              href: survey.href,
+                            }),
+                          });
+
+                          const result = await response.json();
+
+                          if (!response.ok || !result?.success) {
+                            throw new Error(
+                              result?.error || "Unable to start survey"
+                            );
+                          }
+
+                          window.open(
+                            result.href,
+                            "_blank",
+                            "noopener,noreferrer"
+                          );
+                        } catch (error) {
+                          console.error("Survey start error:", error);
+                          alert(
+                            "Unable to start this survey. Please try again."
+                          );
+                        }
+                      }}
                     >
                       Start survey
                       <span className="transition-transform group-hover:translate-x-0.5">

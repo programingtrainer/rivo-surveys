@@ -17,6 +17,7 @@ type AppHeaderProps = {
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", key: "dashboard" },
   { href: "/surveys", label: "Surveys", key: "surveys" },
+  { href: "/challenges", label: "Challenges", key: "challenges" },
   { href: "/wallet", label: "Wallet", key: "wallet" },
   { href: "/settings", label: "Settings", key: "settings" },
 ];

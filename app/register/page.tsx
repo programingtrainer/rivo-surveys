@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import RegisterForm from "./RegisterForm";
 
 export default function RegisterPage() {
@@ -7,5 +8,9 @@ export default function RegisterPage() {
     throw new Error("NEXT_PUBLIC_TURNSTILE_SITE_KEY is not configured");
   }
 
-  return <RegisterForm siteKey={siteKey} />;
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm siteKey={siteKey} />
+    </Suspense>
+  );
 }

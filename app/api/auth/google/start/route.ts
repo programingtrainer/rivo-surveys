@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { OAuth2Client } from "google-auth-library";
 
-export async function GET() {
+export async function GET(request: Request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -14,8 +14,15 @@ export async function GET() {
     );
   }
 
+  const requestUrl = new URL(request.url);
+  const referralCode =
+    requestUrl.searchParams
+      .get("ref")
+      ?.trim()
+      .toUpperCase() || "";
+
   const redirectUri =
-    "http://localhost:3000/api/auth/google/callback";
+    new URL("/api/auth/google/callback", request.url).toString().replace(/\/$/, "");
 
   const oauth2Client = new OAuth2Client(
     clientId,
@@ -23,7 +30,8 @@ export async function GET() {
     redirectUri
   );
 
-  const state = crypto.randomBytes(32).toString("hex");
+  const state =
+    crypto.randomBytes(32).toString("hex");
 
   const cookieStore = await cookies();
 
@@ -34,6 +42,23 @@ export async function GET() {
     path: "/",
     maxAge: 10 * 60,
   });
+
+  if (referralCode) {
+    cookieStore.set(
+      "google_referral_code",
+      referralCode,
+      {
+        httpOnly: true,
+        secure:
+          process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 10 * 60,
+      }
+    );
+  } else {
+    cookieStore.delete("google_referral_code");
+  }
 
   const url = oauth2Client.generateAuthUrl({
     access_type: "online",

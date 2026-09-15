@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { cpxTransactions, users, wallets, withdrawals } from "@/lib/schema";
+import { cpxTransactions, referrals, users, wallets, withdrawals } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 import AdminUsers from "./AdminUsers";
 import AppHeader from "../AppHeader";
@@ -72,6 +72,13 @@ export default async function AdminPage() {
         successfulSurveys: sql<number>`coalesce(${surveyStats.successfulSurveys}, 0)`,
         failedSurveys: sql<number>`coalesce(${surveyStats.failedSurveys}, 0)`,
         totalEarnedUsd: sql<string>`coalesce(${surveyStats.totalEarnedUsd}, 0)`,
+
+        successfulReferrals: sql<number>`(
+          select count(*)
+          from ${referrals}
+          where ${referrals.referrerUserId} = ${users.id}
+            and lower(${referrals.status}) = 'qualified'
+        )`,
 
         withdrawalCount: sql<number>`(
           select count(*)
@@ -149,6 +156,31 @@ export default async function AdminPage() {
               className="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Manage Operations
+              <span className="ml-2">→</span>
+            </a>
+          </div>
+        </section>
+
+        <section className="motion-card mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[.16em] text-slate-400">
+                Engagement
+              </p>
+              <h3 className="mt-1 text-lg font-bold">
+                Telegram Daily Codes
+              </h3>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                Create, schedule, edit, and remove daily Telegram reward codes
+                for Rivo users.
+              </p>
+            </div>
+
+            <a
+              href="/admin/telegram-codes"
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Manage Codes
               <span className="ml-2">→</span>
             </a>
           </div>

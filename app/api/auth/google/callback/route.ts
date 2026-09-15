@@ -5,7 +5,12 @@ import { OAuth2Client } from "google-auth-library";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { users, sessions, wallets } from "@/lib/schema";
+import {
+  users,
+  sessions,
+  wallets,
+  referrals,
+} from "@/lib/schema";
 
 export async function GET(request: Request) {
   try {
@@ -15,47 +20,79 @@ export async function GET(request: Request) {
 
     if (!code || !state) {
       return NextResponse.redirect(
-        new URL("/login?error=google_auth_failed", request.url)
+        new URL(
+          "/login?error=google_auth_failed",
+          request.url
+        )
       );
     }
 
     const cookieStore = await cookies();
 
     const savedState =
-      cookieStore.get("google_oauth_state")?.value;
+      cookieStore.get(
+        "google_oauth_state"
+      )?.value;
 
-    if (!savedState || savedState !== state) {
+    if (
+      !savedState ||
+      savedState !== state
+    ) {
       return NextResponse.redirect(
-        new URL("/login?error=invalid_oauth_state", request.url)
+        new URL(
+          "/login?error=invalid_oauth_state",
+          request.url
+        )
       );
     }
 
-    cookieStore.delete("google_oauth_state");
+    cookieStore.delete(
+      "google_oauth_state"
+    );
 
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const referralCode =
+      cookieStore.get(
+        "google_referral_code"
+      )?.value || "";
+
+    cookieStore.delete(
+      "google_referral_code"
+    );
+
+    const clientId =
+      process.env.GOOGLE_CLIENT_ID;
+
+    const clientSecret =
+      process.env.GOOGLE_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
       return NextResponse.redirect(
-        new URL("/login?error=google_not_configured", request.url)
+        new URL(
+          "/login?error=google_not_configured",
+          request.url
+        )
       );
     }
 
     const redirectUri =
-      "http://localhost:3000/api/auth/google/callback";
+      new URL("/api/auth/google/callback", request.url).toString().replace(/\/$/, "");
 
-    const oauth2Client = new OAuth2Client(
-      clientId,
-      clientSecret,
-      redirectUri
-    );
+    const oauth2Client =
+      new OAuth2Client(
+        clientId,
+        clientSecret,
+        redirectUri
+      );
 
     const { tokens } =
       await oauth2Client.getToken(code);
 
     if (!tokens.id_token) {
       return NextResponse.redirect(
-        new URL("/login?error=no_google_id_token", request.url)
+        new URL(
+          "/login?error=no_google_id_token",
+          request.url
+        )
       );
     }
 
@@ -65,41 +102,62 @@ export async function GET(request: Request) {
         audience: clientId,
       });
 
-    const payload = ticket.getPayload();
+    const payload =
+      ticket.getPayload();
 
-    if (!payload?.sub || !payload.email) {
+    if (
+      !payload?.sub ||
+      !payload.email
+    ) {
       return NextResponse.redirect(
-        new URL("/login?error=invalid_google_account", request.url)
+        new URL(
+          "/login?error=invalid_google_account",
+          request.url
+        )
       );
     }
 
-    if (payload.email_verified !== true) {
+    if (
+      payload.email_verified !== true
+    ) {
       return NextResponse.redirect(
-        new URL("/login?error=google_email_not_verified", request.url)
+        new URL(
+          "/login?error=google_email_not_verified",
+          request.url
+        )
       );
     }
 
     const googleId = payload.sub;
-    const email = payload.email.toLowerCase();
+    const email =
+      payload.email.toLowerCase();
+
     const name =
       payload.name ||
       email.split("@")[0] ||
       "Rivo User";
 
-    const avatarUrl = payload.picture || null;
+    const avatarUrl =
+      payload.picture || null;
 
     let userId: string;
 
-    const existingGoogleUser = await db
-      .select({
-        id: users.id,
-      })
-      .from(users)
-      .where(eq(users.googleId, googleId))
-      .limit(1);
+    const existingGoogleUser =
+      await db
+        .select({
+          id: users.id,
+        })
+        .from(users)
+        .where(
+          eq(users.googleId, googleId)
+        )
+        .limit(1);
 
-    if (existingGoogleUser.length > 0) {
-      userId = existingGoogleUser[0].id;
+    if (
+      existingGoogleUser.length > 0
+    ) {
+      userId =
+        existingGoogleUser[0].id;
 
       await db
         .update(users)
@@ -108,18 +166,26 @@ export async function GET(request: Request) {
           avatarUrl,
           updatedAt: new Date(),
         })
-        .where(eq(users.id, userId));
+        .where(
+          eq(users.id, userId)
+        );
     } else {
-      const existingEmailUser = await db
-        .select({
-          id: users.id,
-        })
-        .from(users)
-        .where(eq(users.email, email))
-        .limit(1);
+      const existingEmailUser =
+        await db
+          .select({
+            id: users.id,
+          })
+          .from(users)
+          .where(
+            eq(users.email, email)
+          )
+          .limit(1);
 
-      if (existingEmailUser.length > 0) {
-        userId = existingEmailUser[0].id;
+      if (
+        existingEmailUser.length > 0
+      ) {
+        userId =
+          existingEmailUser[0].id;
 
         await db
           .update(users)
@@ -129,7 +195,9 @@ export async function GET(request: Request) {
             avatarUrl,
             updatedAt: new Date(),
           })
-          .where(eq(users.id, userId));
+          .where(
+            eq(users.id, userId)
+          );
 
         await db
           .insert(wallets)
@@ -141,36 +209,89 @@ export async function GET(request: Request) {
             target: wallets.userId,
           });
       } else {
-        const created = await db.transaction(
-          async (tx) => {
-            const inserted = await tx
-              .insert(users)
-              .values({
-                email,
-                name,
-                googleId,
-                avatarUrl,
-              })
-              .returning({
+        let referrerUserId:
+          | string
+          | null = null;
+
+        if (referralCode) {
+          const referrer =
+            await db
+              .select({
                 id: users.id,
-              });
+              })
+              .from(users)
+              .where(
+                eq(
+                  users.referralCode,
+                  referralCode
+                )
+              )
+              .limit(1);
 
-            const user = inserted[0];
-
-            if (!user) {
-              throw new Error(
-                "Failed to create Google user."
-              );
-            }
-
-            await tx.insert(wallets).values({
-              userId: user.id,
-              balance: "0",
-            });
-
-            return user;
+          if (referrer.length > 0) {
+            referrerUserId =
+              referrer[0].id;
           }
-        );
+        }
+
+        const newReferralCode =
+          `RIVO-${crypto
+            .randomBytes(5)
+            .toString("hex")
+            .toUpperCase()}`;
+
+        const created =
+          await db.transaction(
+            async (tx) => {
+              const inserted =
+                await tx
+                  .insert(users)
+                  .values({
+                    email,
+                    name,
+                    googleId,
+                    avatarUrl,
+                    referralCode:
+                      newReferralCode,
+                  })
+                  .returning({
+                    id: users.id,
+                  });
+
+              const user =
+                inserted[0];
+
+              if (!user) {
+                throw new Error(
+                  "Failed to create Google user."
+                );
+              }
+
+              await tx
+                .insert(wallets)
+                .values({
+                  userId: user.id,
+                  balance: "0",
+                });
+
+              if (
+                referrerUserId &&
+                referrerUserId !==
+                  user.id
+              ) {
+                await tx
+                  .insert(referrals)
+                  .values({
+                    referrerUserId,
+                    referredUserId:
+                      user.id,
+                    status: "pending",
+                  });
+              }
+
+              return user;
+            }
+          );
 
         userId = created.id;
       }
@@ -191,11 +312,13 @@ export async function GET(request: Request) {
           30 * 24 * 60 * 60 * 1000
       );
 
-    await db.insert(sessions).values({
-      userId,
-      tokenHash,
-      expiresAt,
-    });
+    await db
+      .insert(sessions)
+      .values({
+        userId,
+        tokenHash,
+        expiresAt,
+      });
 
     cookieStore.set(
       "rivo_session",
@@ -203,7 +326,8 @@ export async function GET(request: Request) {
       {
         httpOnly: true,
         secure:
-          process.env.NODE_ENV === "production",
+          process.env.NODE_ENV ===
+          "production",
         sameSite: "lax",
         path: "/",
         maxAge:
@@ -212,7 +336,10 @@ export async function GET(request: Request) {
     );
 
     return NextResponse.redirect(
-      new URL("/dashboard", request.url)
+      new URL(
+        "/dashboard",
+        request.url
+      )
     );
   } catch (error) {
     console.error(
