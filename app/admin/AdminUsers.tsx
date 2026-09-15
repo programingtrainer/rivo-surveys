@@ -10,6 +10,7 @@ type User = {
   createdAt: Date | string;
   balance: string | number;
   totalSurveys: number | string;
+  completedDailyTasks: number | string;
   successfulSurveys: number | string;
   outSurveys?: number | string;
   failedSurveys: number | string;
@@ -74,6 +75,14 @@ type UserDetails = {
   };
   surveys: Survey[];
   surveyAttempts: SurveyAttempt[];
+  dailyTasks: {
+    id: string;
+    taskId: string;
+    title: string;
+    description: string;
+    rewardUsd: string | number;
+    completedAt: string;
+  }[];
   withdrawals: Withdrawal[];
   referrals: {
     id: string;
@@ -395,6 +404,12 @@ export default function AdminUsers({
 
                   <td className="px-5 py-4 text-sm font-semibold">
                     {count(u.totalSurveys)}
+                  </td>
+
+                  <td className="px-5 py-4 text-center">
+                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                      {count(u.completedDailyTasks)}
+                    </span>
                   </td>
 
                   <td className="px-5 py-4">
@@ -941,6 +956,53 @@ export default function AdminUsers({
                         </tbody>
                       </table>
                     </div>
+                  </section>
+
+                  
+
+                  <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-white">Daily Tasks Completed</h3>
+                        <p className="text-sm text-white/50">Full history of completed daily tasks</p>
+                      </div>
+                      <span className="rounded-full bg-amber-400/10 px-3 py-1 text-sm font-semibold text-amber-300">
+                        {count(details?.user.completedDailyTasks)}
+                      </span>
+                    </div>
+
+                    {details?.dailyTasks?.length ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[700px] text-sm">
+                          <thead>
+                            <tr className="border-b border-white/10 text-left text-white/50">
+                              <th className="px-3 py-3">Task</th>
+                              <th className="px-3 py-3">Description</th>
+                              <th className="px-3 py-3">Reward</th>
+                              <th className="px-3 py-3">Completed</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {details.dailyTasks.map((task: UserDetails['dailyTasks'][number]) => (
+                              <tr key={task.id} className="border-b border-white/5">
+                                <td className="px-3 py-3 font-semibold text-white">{task.title}</td>
+                                <td className="max-w-[320px] px-3 py-3 text-white/60">{task.description}</td>
+                                <td className="px-3 py-3 font-semibold text-amber-300">
+                                  ${Number(task.rewardUsd).toFixed(2)}
+                                </td>
+                                <td className="px-3 py-3 text-white/60">
+                                  {new Date(task.completedAt).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-white/40">
+                        No completed daily tasks yet.
+                      </div>
+                    )}
                   </section>
 
                   <section>

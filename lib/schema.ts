@@ -129,3 +129,38 @@ export const referralRewards = pgTable("referral_rewards", {
     .on(table.userId, table.milestone),
   userIdIdx: index("referral_rewards_user_id_idx").on(table.userId),
 }));
+
+
+export const dailyTasks = pgTable("daily_tasks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  rewardUsd: numeric("reward_usd", { precision: 12, scale: 2 }).notNull(),
+  audience: text("audience").notNull().default("all"),
+  actionUrl: text("action_url"),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  startsAtIdx: index("daily_tasks_starts_at_idx").on(table.startsAt),
+  expiresAtIdx: index("daily_tasks_expires_at_idx").on(table.expiresAt),
+  audienceIdx: index("daily_tasks_audience_idx").on(table.audience),
+}));
+
+export const dailyTaskCompletions = pgTable("daily_task_completions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  taskId: uuid("task_id")
+    .notNull()
+    .references(() => dailyTasks.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  rewardUsd: numeric("reward_usd", { precision: 12, scale: 2 }).notNull(),
+  completedAt: timestamp("completed_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  taskUserUnique: uniqueIndex("daily_task_completions_task_user_unique")
+    .on(table.taskId, table.userId),
+  taskIdIdx: index("daily_task_completions_task_id_idx").on(table.taskId),
+  userIdIdx: index("daily_task_completions_user_id_idx").on(table.userId),
+}));

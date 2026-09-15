@@ -4,6 +4,8 @@ import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   cpxTransactions,
+  dailyTaskCompletions,
+  dailyTasks,
   referrals,
   surveyAttempts,
   users,
@@ -37,6 +39,12 @@ export async function GET(
         updatedAt: users.updatedAt,
         referralCode: users.referralCode,
 
+        completedDailyTasks: sql<number>`(
+          select count(*)
+          from ${dailyTaskCompletions}
+          where ${dailyTaskCompletions.userId} = ${users.id}
+        )`,
+
         balance: sql<string>`coalesce((
           select ${wallets.balance}
           from ${wallets}
@@ -45,38 +53,40 @@ export async function GET(
         ), '0')`,
 
         totalSurveys: sql<number>`(
-          select count(*)
-          from ${surveyAttempts}
-          where ${surveyAttempts.userId} = ${users.id}
+          SELECT COUNT(*)
+          FROM ${cpxTransactions}
+          WHERE ${cpxTransactions.userId} = ${users.id}
         )`,
-
         successfulSurveys: sql<number>`(
-          select count(*)
-          from ${surveyAttempts}
-          where ${surveyAttempts.userId} = ${users.id}
-            and lower(${surveyAttempts.status}) = 'completed'
+          SELECT COUNT(*)
+          FROM ${cpxTransactions}
+          WHERE ${cpxTransactions.userId} = ${users.id}
+            AND lower(${cpxTransactions.status}) = 'completed'
+            AND lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
         )`,
-
         outSurveys: sql<number>`(
-          select count(*)
-          from ${surveyAttempts}
-          where ${surveyAttempts.userId} = ${users.id}
-            and lower(${surveyAttempts.status}) = 'out'
+          SELECT COUNT(*)
+          FROM ${cpxTransactions}
+          WHERE ${cpxTransactions.userId} = ${users.id}
+            AND lower(${cpxTransactions.status}) = 'completed'
+            AND lower(coalesce(${cpxTransactions.type}, '')) = 'out'
         )`,
-
         failedSurveys: sql<number>`(
-          select count(*)
-          from ${surveyAttempts}
-          where ${surveyAttempts.userId} = ${users.id}
-            and lower(${surveyAttempts.status}) = 'failed'
+          SELECT COUNT(*)
+          FROM ${cpxTransactions}
+          WHERE ${cpxTransactions.userId} = ${users.id}
+            AND (
+              lower(${cpxTransactions.status}) <> 'completed'
+              OR lower(coalesce(${cpxTransactions.type}, '')) NOT IN ('complete', 'out')
+            )
+        )`,
+        startedSurveys: sql<number>`(
+          SELECT COUNT(*)
+          FROM ${surveyAttempts}
+          WHERE ${surveyAttempts.userId} = ${users.id}
+            AND lower(${surveyAttempts.status}) = 'started'
         )`,
 
-        startedSurveys: sql<number>`(
-          select count(*)
-          from ${surveyAttempts}
-          where ${surveyAttempts.userId} = ${users.id}
-            and lower(${surveyAttempts.status}) = 'started'
-        )`,
 
         totalEarnedUsd: sql<string>`coalesce((
           select sum(${cpxTransactions.amountUsd})
@@ -149,6 +159,7 @@ export async function GET(
     const [
       surveyRows,
       surveyAttemptRows,
+      dailyTaskRows,
       withdrawalRows,
       surveyStats,
       referralRows,
@@ -190,6 +201,23 @@ export async function GET(
 
       db
         .select({
+          id: dailyTaskCompletions.id,
+          taskId: dailyTaskCompletions.taskId,
+          title: dailyTasks.title,
+          description: dailyTasks.description,
+          rewardUsd: dailyTaskCompletions.rewardUsd,
+          completedAt: dailyTaskCompletions.completedAt,
+        })
+        .from(dailyTaskCompletions)
+        .innerJoin(
+          dailyTasks,
+          eq(dailyTaskCompletions.taskId, dailyTasks.id)
+        )
+        .where(eq(dailyTaskCompletions.userId, id))
+        .orderBy(asc(dailyTaskCompletions.completedAt)),
+
+      db
+        .select({
           id: withdrawals.id,
           amount: withdrawals.amount,
           fee: withdrawals.fee,
@@ -211,26 +239,33 @@ export async function GET(
         .select({
           totalSurveys: sql<number>`count(*)`.as("total_surveys"),
           successfulSurveys: sql<number>`count(*) filter (
-            where lower(${surveyAttempts.status}) = 'completed'
+            where lower(${cpxTransactions.status}) = 'completed'
+              and lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
           )`.as("successful_surveys"),
           outSurveys: sql<number>`count(*) filter (
-            where lower(${surveyAttempts.status}) = 'out'
+            where lower(${cpxTransactions.status}) = 'completed'
+              and lower(coalesce(${cpxTransactions.type}, '')) = 'out'
           )`.as("out_surveys"),
           failedSurveys: sql<number>`count(*) filter (
-            where lower(${surveyAttempts.status}) = 'failed'
+            where lower(${cpxTransactions.status}) <> 'completed'
+              or lower(coalesce(${cpxTransactions.type}, '')) not in ('complete', 'out')
           )`.as("failed_surveys"),
-          startedSurveys: sql<number>`count(*) filter (
-            where lower(${surveyAttempts.status}) = 'started'
+          startedSurveys: sql<number>`(
+            select count(*)
+            from ${surveyAttempts}
+            where ${surveyAttempts.userId} = ${id}
+              and lower(${surveyAttempts.status}) = 'started'
           )`.as("started_surveys"),
           totalEarnedUsd: sql<string>`coalesce(
-            sum(${surveyAttempts.amountUsd}) filter (
-              where lower(${surveyAttempts.status}) = 'completed'
+            sum(${cpxTransactions.amountUsd}) filter (
+              where lower(${cpxTransactions.status}) = 'completed'
+                and lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
             ),
             0
           )`.as("total_earned_usd"),
         })
-        .from(surveyAttempts)
-        .where(eq(surveyAttempts.userId, id)),
+        .from(cpxTransactions)
+        .where(eq(cpxTransactions.userId, id)),
 
       db.execute(sql`
         SELECT
@@ -273,6 +308,7 @@ export async function GET(
       },
       surveys: surveyRows,
       surveyAttempts: surveyAttemptRows,
+      dailyTasks: dailyTaskRows,
       withdrawals: withdrawalRows,
       referrals: referralRows.rows.map((row) => ({
         id: String(row.id),

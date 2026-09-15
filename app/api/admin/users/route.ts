@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { desc, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { cpxTransactions, referrals, users, wallets, withdrawals } from "@/lib/schema";
+import { cpxTransactions, dailyTaskCompletions, referrals, users, wallets, withdrawals } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 
 const ADMIN_EMAIL = "gatapro901@gmail.com";
@@ -31,6 +31,12 @@ export async function GET() {
         select count(*)
         from ${cpxTransactions}
         where ${cpxTransactions.userId} = ${users.id}
+      )`,
+
+      completedDailyTasks: sql<number>`(
+        select count(*)
+        from ${dailyTaskCompletions}
+        where ${dailyTaskCompletions.userId} = ${users.id}
       )`,
 
       successfulSurveys: sql<number>`(

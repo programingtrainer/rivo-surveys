@@ -1,7 +1,17 @@
+"use server";
+
 import { redirect } from "next/navigation";
-import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { cpxTransactions, referrals, users, wallets, withdrawals } from "@/lib/schema";
+import {
+  cpxTransactions,
+  dailyTaskCompletions,
+  referrals,
+  users,
+  wallets,
+  withdrawals,
+} from "@/lib/schema";
+import { desc, eq, sql } from "drizzle-orm";
+
 import { isAdmin } from "@/lib/auth";
 import AdminUsers from "./AdminUsers";
 import AppHeader from "../AppHeader";
@@ -71,6 +81,11 @@ export default async function AdminPage() {
         totalSurveys: sql<number>`coalesce(${surveyStats.totalSurveys}, 0)`,
         successfulSurveys: sql<number>`coalesce(${surveyStats.successfulSurveys}, 0)`,
         failedSurveys: sql<number>`coalesce(${surveyStats.failedSurveys}, 0)`,
+        completedDailyTasks: sql<number>`(
+          select count(*)
+          from ${dailyTaskCompletions}
+          where ${dailyTaskCompletions.userId} = ${users.id}
+        )`,
         totalEarnedUsd: sql<string>`coalesce(${surveyStats.totalEarnedUsd}, 0)`,
 
         successfulReferrals: sql<number>`(
@@ -100,6 +115,13 @@ export default async function AdminPage() {
       .orderBy(desc(users.createdAt))
       .limit(100),
   ]);
+  
+  const totalSiteSurveys = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(cpxTransactions);
+
+  const totalSiteSurveyCount = Number(totalSiteSurveys[0]?.count ?? 0);
+
 
 
   const total = Number(stats[0]?.total ?? 0);
@@ -124,6 +146,7 @@ export default async function AdminPage() {
             ["Total users", total],
             ["Active users", active],
             ["Blocked users", blocked],
+            ["Total Surveys", totalSiteSurveyCount.toLocaleString()],
             ["Wallet balance", `$${balance.toFixed(2)}`],
           ].map(([label, value]) => (
             <div
@@ -156,6 +179,32 @@ export default async function AdminPage() {
               className="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Manage Operations
+              <span className="ml-2">→</span>
+            </a>
+          </div>
+        </section>
+
+
+        <section className="motion-card mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[.16em] text-slate-400">
+                Engagement
+              </p>
+              <h3 className="mt-1 text-lg font-bold">
+                Daily Tasks
+              </h3>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                Create scheduled tasks, target specific users, and manage
+                rewards available inside Rivo Challenges.
+              </p>
+            </div>
+
+            <a
+              href="/admin/tasks"
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              إضافة مهام
               <span className="ml-2">→</span>
             </a>
           </div>
