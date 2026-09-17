@@ -1,207 +1,367 @@
- "use client";
+"use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import AppHeader from "../../AppHeader";
 
 type Task = {
   id: string;
   title: string;
-  description: string;
-  rewardUsd: string;
-  actionUrl: string | null;
-  startsAt: string;
-  expiresAt: string;
-  completed: boolean;
+  description?: string | null;
+  rewardUsd: string | number;
+  actionUrl?: string | null;
+  verificationType?: string | null;
+  verificationValue?: string | null;
+  completed?: boolean;
+  verificationStatus?: string | null;
 };
 
-function formatRemaining(value: string) {
-  const ms = new Date(value).getTime() - Date.now();
+function money(value: string | number) {
+  return `$${Number(value || 0).toFixed(2)}`;
+}
 
-  if (ms <= 0) return "Expired";
+function isVerifiedTask(task: Task) {
+  return (
+    task.verificationType === "survey_complete" ||
+    task.verificationType === "referral_qualified"
+  );
+}
 
-  const hours = Math.floor(ms / 3600000);
-  const minutes = Math.floor((ms % 3600000) / 60000);
-
-  if (hours > 24) {
-    return `${Math.floor(hours / 24)}d ${hours % 24}h left`;
-  }
-
-  return `${hours}h ${minutes}m left`;
+function taskType(task: Task) {
+  if (task.verificationType === "survey_complete") return "Survey verification";
+  if (task.verificationType === "referral_qualified") return "Referral verification";
+  return "Quick reward";
 }
 
 export default function DailyTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
 
-  async function load() {
+  useEffect(() => {
     try {
+      const saved = JSON.parse(
+        sessionStorage.getItem("rivo-opened-tasks") || "{}",
+      );
+      setOpened(saved);
+    } catch {}
+  }, []);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+
+  async function loadTasks() {
+    try {
+      setLoading(true);
+
       const response = await fetch("/api/challenges/tasks", {
         cache: "no-store",
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        throw new Error("Unable to load tasks");
+      }
 
       const data = await response.json();
-      setTasks(data.tasks ?? []);
+      setTasks(Array.isArray(data) ? data : data.tasks || []);
+    } catch {
+      setNotice("Unable to load tasks right now.");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
-    const timer = window.setInterval(load, 30000);
+    loadTasks();
+    const timer = window.setInterval(loadTasks, 30000);
     return () => window.clearInterval(timer);
   }, []);
 
-  async function claim(task: Task) {
-    setBusy(task.id);
-    setMessage("");
+  const available = useMemo(
+    () => tasks.filter((task) => !task.completed),
+    [tasks],
+  );
+
+  const completed = useMemo(
+    () => tasks.filter((task) => task.completed),
+    [tasks],
+  );
+
+  function openTask(task: Task) {
+    if (!task.actionUrl) {
+      setNotice("This task does not have a link.");
+      return;
+    }
+
+    const nextOpened = {
+      ...opened,
+      [task.id]: true,
+    };
+
+    setOpened(nextOpened);
 
     try {
+      sessionStorage.setItem(
+        "rivo-opened-tasks",
+        JSON.stringify(nextOpened),
+      );
+    } catch {}
+
+    window.open(task.actionUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function claimTask(task: Task) {
+    const needsOpen =
+      !isVerifiedTask(task) &&
+      !!task.actionUrl;
+
+    if (needsOpen && !opened[task.id]) {
+      setNotice("Open the task first, then claim your reward.");
+      return;
+    }
+
+    try {
+      setBusy(task.id);
+      setNotice("");
+
       const response = await fetch("/api/challenges/tasks/complete", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ taskId: task.id }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(data.error || "Unable to claim reward.");
-        return;
+        throw new Error(data?.error || "Unable to claim this task.");
       }
+
+      const credited =
+        data.rewardCredited === true ||
+        data.credited === true ||
+        data.verificationStatus === "verified";
 
       setTasks((current) =>
         current.map((item) =>
-          item.id === task.id ? { ...item, completed: true } : item
-        )
+          item.id === task.id
+            ? {
+                ...item,
+                completed: credited,
+                verificationStatus: credited
+                  ? "verified"
+                  : data.verificationStatus,
+              }
+            : item,
+        ),
       );
 
-      setMessage(`Reward claimed: $${Number(data.reward).toFixed(2)}`);
+      setNotice(
+        credited
+          ? `${money(task.rewardUsd)} was added to your wallet.`
+          : "This task could not be verified yet.",
+      );
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Unable to claim this task.",
+      );
     } finally {
       setBusy(null);
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#fafaf8] text-black">
+    <main className="min-h-screen bg-[#f7f8fa] text-slate-900">
       <AppHeader />
+      <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
 
-      <main className="rivo-container pb-16 pt-8">
-        <Link
-          href="/challenges"
-          className="text-sm font-semibold text-black/50 transition hover:text-black"
-        >
-          ← Back to Challenges
-        </Link>
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => window.location.href = "/challenges"}
+            className="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-slate-900"
+          >
+            ← Back to Challenges
+          </button>
+        </div>
 
-        <section className="page-transition page-transition-visible motion-card mt-6 overflow-hidden rounded-[2rem] bg-black px-6 py-10 text-white shadow-[0_24px_70px_rgba(0,0,0,.12)] sm:px-10">
-          <p className="text-xs font-semibold uppercase tracking-[.22em] text-white/45">
-            Daily Tasks
-          </p>
+        {/* Rivo-style hero */}
+        <section className="overflow-hidden rounded-[28px] bg-[#111111] px-6 py-7 shadow-sm sm:px-8 sm:py-8">
+          <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-400">
+                Rivo Rewards
+              </p>
 
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Simple tasks. Extra rewards.
-          </h1>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                Daily Tasks
+              </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-            Complete the available activities before they expire and claim the
-            reward directly to your Rivo wallet.
-          </p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
+                Complete simple tasks, claim your rewards, and grow your
+                available balance.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="min-w-[115px] rounded-2xl bg-white/[0.07] px-4 py-3">
+                <p className="text-xs font-medium text-slate-400">
+                  Available
+                </p>
+                <p className="mt-1 text-2xl font-black text-white">
+                  {available.length}
+                </p>
+              </div>
+
+              <div className="min-w-[115px] rounded-2xl bg-white/[0.07] px-4 py-3">
+                <p className="text-xs font-medium text-slate-400">
+                  Completed
+                </p>
+                <p className="mt-1 text-2xl font-black text-white">
+                  {completed.length}
+                </p>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {message && (
-          <div className="motion-fade-up mt-5 rounded-2xl border border-black/10 bg-white px-5 py-4 text-sm font-medium shadow-sm">
-            {message}
+        {notice && (
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-700 shadow-sm">
+            {notice}
           </div>
         )}
 
-        <section className="motion-stagger mt-8 grid gap-5 md:grid-cols-2">
-          {loading ? (
-            [1, 2].map((item) => (
+        {loading && (
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            {[1, 2].map((item) => (
               <div
                 key={item}
-                className="h-56 animate-pulse rounded-3xl border border-black/10 bg-white"
+                className="h-64 animate-pulse rounded-[26px] bg-white shadow-sm"
               />
-            ))
-          ) : tasks.length === 0 ? (
-            <div className="motion-card rounded-3xl border border-black/10 bg-white p-8 shadow-sm md:col-span-2">
-              <h2 className="text-xl font-semibold">No tasks available</h2>
-              <p className="mt-2 text-sm leading-6 text-black/50">
-                Check back later for new daily opportunities.
-              </p>
-            </div>
-          ) : (
-            tasks.map((task) => (
-              <article
-                key={task.id}
-                className="motion-card group relative overflow-hidden rounded-3xl border border-black/10 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,.08)]"
-              >
-                <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-black/[.035] blur-2xl transition-transform duration-500 group-hover:scale-150" />
+            ))}
+          </div>
+        )}
 
-                <div className="relative">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[.16em] text-black/35">
-                        Daily Task
+        {!loading && tasks.length === 0 && (
+          <section className="mt-6 rounded-[26px] bg-white px-6 py-16 text-center shadow-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-xl font-black text-slate-500">
+              ✓
+            </div>
+
+            <h2 className="mt-5 text-xl font-black text-slate-900">
+              No tasks available
+            </h2>
+
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+              New rewards will appear here when tasks become available.
+            </p>
+          </section>
+        )}
+
+        {!loading && tasks.length > 0 && (
+          <section className="mt-6 grid gap-5 md:grid-cols-2">
+            {tasks.map((task) => {
+              const verifiedTask = isVerifiedTask(task);
+              const hasOpened = !!opened[task.id];
+              const isCompleted = !!task.completed;
+
+              return (
+                <article
+                  key={task.id}
+                  className={`relative rounded-[26px] border bg-white p-5 shadow-sm transition-all sm:p-6 ${
+                    isCompleted
+                      ? "border-emerald-200"
+                      : "border-slate-200 hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                >
+                  <div
+                    className={`absolute left-0 top-7 h-10 w-1 rounded-r-full ${
+                      isCompleted ? "bg-emerald-500" : "bg-slate-900"
+                    }`}
+                  />
+
+                  <div className="flex items-start justify-between gap-4 pl-2">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg font-black text-slate-900">
+                          {task.title}
+                        </h2>
+
+                        {isCompleted && (
+                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-700">
+                            Completed
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-1 text-xs font-semibold text-slate-400">
+                        {taskType(task)}
                       </p>
-                      <h2 className="mt-2 text-xl font-semibold">
-                        {task.title}
-                      </h2>
                     </div>
 
-                    <span className="rounded-full bg-black px-3 py-1.5 text-sm font-bold text-white">
-                      +${Number(task.rewardUsd).toFixed(2)}
-                    </span>
+                    <div className="shrink-0 rounded-2xl bg-slate-100 px-3.5 py-2.5 text-right">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                        Reward
+                      </p>
+                      <p className="text-lg font-black text-slate-900">
+                        +{money(task.rewardUsd)}
+                      </p>
+                    </div>
                   </div>
 
-                  <p className="mt-4 text-sm leading-6 text-black/55">
-                    {task.description}
+                  <p className="mt-5 pl-2 text-sm leading-6 text-slate-600">
+                    {task.description ||
+                      "Complete this task to earn an additional reward."}
                   </p>
 
-                  <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-5">
-                    <span className="text-xs font-semibold text-black/45">
-                      {formatRemaining(task.expiresAt)}
-                    </span>
+                  {!isCompleted && (
+                    <>
+                      <div className="mt-5 rounded-2xl bg-slate-50 px-4 py-3">
+                        <p className="text-xs font-semibold text-slate-500">
+                          {verifiedTask
+                            ? "Completion is verified automatically."
+                            : hasOpened
+                              ? "Task opened. You can now claim your reward."
+                              : "Open the task, then claim your reward."}
+                        </p>
+                      </div>
 
-                    {task.completed ? (
-                      <span className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
-                        ✓ Reward claimed
-                      </span>
-                    ) : (
-                      <div className="flex gap-2">
-                        {task.actionUrl && (
-                          <a
-                            href={task.actionUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold transition hover:bg-black/5"
-                          >
-                            Start
-                          </a>
-                        )}
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => openTask(task)}
+                          disabled={!task.actionUrl}
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {hasOpened ? "↗ Open Again" : "↗ Open Task"}
+                        </button>
 
                         <button
                           type="button"
+                          onClick={() => claimTask(task)}
                           disabled={busy === task.id}
-                          onClick={() => claim(task)}
-                          className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-2xl bg-[#111111] px-4 py-3.5 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-slate-300"
                         >
-                          {busy === task.id ? "Claiming..." : "Claim Reward"}
+                          {busy === task.id
+                            ? "Processing..."
+                            : "✓ Claim Reward"}
                         </button>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))
-          )}
-        </section>
-      </main>
-    </div>
+                    </>
+                  )}
+
+                  {isCompleted && (
+                    <div className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3.5 text-center text-sm font-bold text-emerald-700">
+                      ✓ Reward credited to your wallet
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </section>
+        )}
+      </div>
+    </main>
   );
 }

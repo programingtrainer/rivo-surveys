@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import {
   cpxTransactions,
   dailyTaskCompletions,
+  telegramCodeRedemptions,
   dailyTasks,
   referrals,
   surveyAttempts,
@@ -88,13 +89,34 @@ export async function GET(
         )`,
 
 
-        totalEarnedUsd: sql<string>`coalesce((
-          select sum(${cpxTransactions.amountUsd})
-          from ${cpxTransactions}
-          where ${cpxTransactions.userId} = ${users.id}
-            and lower(${cpxTransactions.status}) = 'completed'
-            and lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
-        ), '0')`,
+        totalEarnedUsd: sql<string>`(
+          coalesce((
+            select sum(${cpxTransactions.amountUsd})
+            from ${cpxTransactions}
+            where ${cpxTransactions.userId} = ${users.id}
+              and lower(${cpxTransactions.status}) = 'completed'
+              and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
+          ), 0)
+          +
+          coalesce((
+            select sum(${dailyTaskCompletions.rewardUsd})
+            from ${dailyTaskCompletions}
+            where ${dailyTaskCompletions.userId} = ${users.id}
+              and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
+          ), 0)
+          +
+          coalesce((
+            select sum(rr.reward_usd)
+            from referral_rewards rr
+            where rr.user_id = ${users.id}
+          ), 0)
+          +
+          coalesce((
+            select sum(${telegramCodeRedemptions.reward})
+            from ${telegramCodeRedemptions}
+            where ${telegramCodeRedemptions.userId} = ${users.id}
+          ), 0)
+        )`,
 
         withdrawalCount: sql<number>`(
           select count(*)
@@ -179,7 +201,6 @@ export async function GET(
           updatedAt: cpxTransactions.updatedAt,
         })
         .from(cpxTransactions)
-        .where(eq(cpxTransactions.userId, id))
         .orderBy(asc(cpxTransactions.createdAt)),
 
       db
@@ -256,12 +277,33 @@ export async function GET(
             where ${surveyAttempts.userId} = ${id}
               and lower(${surveyAttempts.status}) = 'started'
           )`.as("started_surveys"),
-          totalEarnedUsd: sql<string>`coalesce(
-            sum(${cpxTransactions.amountUsd}) filter (
-              where lower(${cpxTransactions.status}) = 'completed'
-                and lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
-            ),
-            0
+          totalEarnedUsd: sql<string>`(
+            coalesce(
+              sum(${cpxTransactions.amountUsd}) filter (
+                where lower(${cpxTransactions.status}) = 'completed'
+                  and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
+              ),
+              0
+            )
+            +
+            coalesce((
+              select sum(${dailyTaskCompletions.rewardUsd})
+              from ${dailyTaskCompletions}
+              where ${dailyTaskCompletions.userId} = ${id}
+                and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
+            ), 0)
+            +
+            coalesce((
+              select sum(rr.reward_usd)
+              from referral_rewards rr
+              where rr.user_id = ${id}
+            ), 0)
+            +
+            coalesce((
+              select sum(${telegramCodeRedemptions.reward})
+              from ${telegramCodeRedemptions}
+              where ${telegramCodeRedemptions.userId} = ${id}
+            ), 0)
           )`.as("total_earned_usd"),
         })
         .from(cpxTransactions)

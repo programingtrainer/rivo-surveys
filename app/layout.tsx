@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import LiveRefresh from "./LiveRefresh";
 import StructuredData from "./StructuredData";
+import { SITE_URL } from "@/lib/config";
 
-const siteUrl = "https://rivo-surveys.programingtrainer2.workers.dev";
+const siteUrl = SITE_URL;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/config";
 
-const siteUrl = "https://rivo-surveys.programingtrainer2.workers.dev";
+const siteUrl = SITE_URL;
 const pageUrl = `${siteUrl}/acceptable-use`;
 
 export const metadata: Metadata = {

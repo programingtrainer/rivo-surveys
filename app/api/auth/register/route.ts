@@ -205,36 +205,34 @@ export async function POST(request: Request) {
     const userId = crypto.randomUUID();
     const newReferralCode = generateReferralCode();
 
-    await db.batch([
-      db
-        .insert(users)
-        .values({
-          id: userId,
-          email,
-          name,
-          passwordHash,
-          referralCode: newReferralCode,
-        }),
+    await db.transaction(async (tx) => {
+      await tx.insert(users).values({
+        id: userId,
+        email,
+        name,
+        passwordHash,
+        referralCode: newReferralCode,
+      });
 
-      db.insert(wallets).values({
+      await tx.insert(wallets).values({
         userId,
         balance: "0",
-      }),
+      });
 
-      db.insert(sessions).values({
+      await tx.insert(sessions).values({
         userId,
         tokenHash,
         expiresAt,
-      }),
-    ]);
-
-    if (referrerUserId && referrerUserId !== userId) {
-      await db.insert(referrals).values({
-        referrerUserId,
-        referredUserId: userId,
-        status: "pending",
       });
-    }
+
+      if (referrerUserId && referrerUserId !== userId) {
+        await tx.insert(referrals).values({
+          referrerUserId,
+          referredUserId: userId,
+          status: "pending",
+        });
+      }
+    });
 
     const cookieStore = await cookies();
 

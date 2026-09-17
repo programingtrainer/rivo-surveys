@@ -72,6 +72,36 @@ export const withdrawals = pgTable("withdrawals", {
   statusIdx: index("withdrawals_status_idx").on(table.status),
 }));
 
+export const telegramAccounts = pgTable("telegram_accounts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  telegramUserId: text("telegram_user_id").notNull().unique(),
+  username: text("username"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  linkedAt: timestamp("linked_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  telegramUserIdIdx: index("telegram_accounts_telegram_user_id_idx").on(table.telegramUserId),
+}));
+
+export const telegramLinkTokens = pgTable("telegram_link_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("telegram_link_tokens_user_id_idx").on(table.userId),
+  expiresAtIdx: index("telegram_link_tokens_expires_at_idx").on(table.expiresAt),
+}));
+
 export const telegramCodes = pgTable("telegram_codes", {
   id: uuid("id").defaultRandom().primaryKey(),
   code: text("code").notNull().unique(),
@@ -138,6 +168,8 @@ export const dailyTasks = pgTable("daily_tasks", {
   rewardUsd: numeric("reward_usd", { precision: 12, scale: 2 }).notNull(),
   audience: text("audience").notNull().default("all"),
   actionUrl: text("action_url"),
+  verificationType: text("verification_type").notNull().default("manual"),
+  verificationValue: text("verification_value"),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -157,6 +189,9 @@ export const dailyTaskCompletions = pgTable("daily_task_completions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   rewardUsd: numeric("reward_usd", { precision: 12, scale: 2 }).notNull(),
+  verificationStatus: text("verification_status").notNull().default("pending"),
+  evidenceId: text("evidence_id"),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   taskUserUnique: uniqueIndex("daily_task_completions_task_user_unique")

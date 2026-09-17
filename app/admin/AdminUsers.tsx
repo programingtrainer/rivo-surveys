@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type User = {
   id: string;
@@ -160,6 +160,24 @@ export default function AdminUsers({
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState("");
 
+  async function refreshUsers() {
+    try {
+      const r = await fetch("/api/admin/users", {
+        cache: "no-store",
+      });
+
+      if (!r.ok) return;
+
+      const d = await r.json();
+
+      if (Array.isArray(d.users)) {
+        setUsers(d.users);
+      }
+    } catch {
+      // Keep the current list if a background refresh fails.
+    }
+  }
+
   const list = useMemo(
     () =>
       users.filter(
@@ -276,6 +294,7 @@ export default function AdminUsers({
       }
 
       setDetails(d);
+
     } catch (e) {
       setDetailsError(
         e instanceof Error
@@ -331,7 +350,7 @@ export default function AdminUsers({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1250px] text-left">
+          <table className="w-full min-w-[1450px] text-left">
             <thead className="border-b border-slate-200 bg-slate-50">
               <tr>
                 <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
@@ -347,11 +366,19 @@ export default function AdminUsers({
                 </th>
 
                 <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
+                  Daily Tasks
+                </th>
+
+                <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
                   Referrals
                 </th>
 
                 <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
                   Successful
+                </th>
+
+                <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
+                  Out
                 </th>
 
                 <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
@@ -425,6 +452,12 @@ export default function AdminUsers({
                   </td>
 
                   <td className="px-5 py-4">
+                    <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
+                      {count(u.outSurveys)}
+                    </span>
+                  </td>
+
+                  <td className="px-5 py-4">
                     <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
                       {count(u.failedSurveys)}
                     </span>
@@ -493,7 +526,7 @@ export default function AdminUsers({
               {!list.length && (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={12}
                     className="px-5 py-12 text-center text-sm text-slate-500"
                   >
                     No users match your search.
@@ -960,49 +993,83 @@ export default function AdminUsers({
 
                   
 
-                  <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-                    <div className="mb-4 flex items-center justify-between">
+                  <section>
+                    <div className="mb-3 flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-bold text-white">Daily Tasks Completed</h3>
-                        <p className="text-sm text-white/50">Full history of completed daily tasks</p>
+                        <h4 className="font-bold">
+                          Daily Tasks
+                        </h4>
+
+                        <p className="text-sm text-slate-500">
+                          Detailed history of daily tasks completed by this user.
+                        </p>
                       </div>
-                      <span className="rounded-full bg-amber-400/10 px-3 py-1 text-sm font-semibold text-amber-300">
-                        {count(details?.user.completedDailyTasks)}
+
+                      <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                        {count(details.user.completedDailyTasks)} completed
                       </span>
                     </div>
 
-                    {details?.dailyTasks?.length ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-[700px] text-sm">
-                          <thead>
-                            <tr className="border-b border-white/10 text-left text-white/50">
-                              <th className="px-3 py-3">Task</th>
-                              <th className="px-3 py-3">Description</th>
-                              <th className="px-3 py-3">Reward</th>
-                              <th className="px-3 py-3">Completed</th>
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                      <table className="w-full min-w-[900px] text-left text-sm">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3">Task</th>
+                            <th className="px-4 py-3">Description</th>
+                            <th className="px-4 py-3">Reward</th>
+                            <th className="px-4 py-3">Verification</th>
+                            <th className="px-4 py-3">Completed</th>
+                          </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-slate-100">
+                          {details.dailyTasks.map((task) => (
+                            <tr key={task.id} className="hover:bg-slate-50">
+                              <td className="px-4 py-4">
+                                <p className="font-semibold text-slate-900">
+                                  {task.title}
+                                </p>
+
+                                <p className="mt-1 font-mono text-[11px] text-slate-400">
+                                  Task ID: {task.taskId}
+                                </p>
+                              </td>
+
+                              <td className="max-w-[320px] px-4 py-4 text-slate-600">
+                                {task.description || "—"}
+                              </td>
+
+                              <td className="px-4 py-4">
+                                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                                  {money(task.rewardUsd)}
+                                </span>
+                              </td>
+
+                              <td className="px-4 py-4">
+                                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                  Completed
+                                </span>
+                              </td>
+
+                              <td className="px-4 py-4 whitespace-nowrap text-slate-500">
+                                {date(task.completedAt)}
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {details.dailyTasks.map((task: UserDetails['dailyTasks'][number]) => (
-                              <tr key={task.id} className="border-b border-white/5">
-                                <td className="px-3 py-3 font-semibold text-white">{task.title}</td>
-                                <td className="max-w-[320px] px-3 py-3 text-white/60">{task.description}</td>
-                                <td className="px-3 py-3 font-semibold text-amber-300">
-                                  ${Number(task.rewardUsd).toFixed(2)}
-                                </td>
-                                <td className="px-3 py-3 text-white/60">
-                                  {new Date(task.completedAt).toLocaleString()}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-white/40">
-                        No completed daily tasks yet.
-                      </div>
-                    )}
+                          ))}
+
+                          {!details.dailyTasks.length && (
+                            <tr>
+                              <td
+                                colSpan={5}
+                                className="px-4 py-10 text-center text-sm text-slate-500"
+                              >
+                                No daily tasks completed by this user yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </section>
 
                   <section>

@@ -29,15 +29,6 @@ function ArrowIcon() {
   );
 }
 
-function TrophyIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.7">
-      <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 6H5v2a4 4 0 0 0 4 4M16 6h3v2a4 4 0 0 1-4 4M12 13v4M8 20h8M10 17h4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function TelegramIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -89,15 +80,6 @@ export default function ChallengesPage() {
 
   const challengeCards: ChallengeCard[] = [
     {
-      href: "/challenges/weekly",
-      title: "Weekly Challenges",
-      description:
-        "Compete through the week, complete successful surveys, climb the leaderboard, and qualify for the weekly reward.",
-      eyebrow: "COMPETE",
-      action: "View Challenges",
-      icon: <TrophyIcon />,
-    },
-    {
       href: "/challenges/telegram",
       title: "Telegram Daily Codes",
       description:
@@ -123,6 +105,15 @@ export default function ChallengesPage() {
       eyebrow: "INVITE",
       action: "View Referrals",
       icon: <ReferralIcon />,
+    },
+    {
+      href: "/challenges/weekly",
+      title: "Weekly Challenges",
+      description:
+        "Complete weekly goals, track your progress, and unlock extra Rivo rewards throughout the week.",
+      eyebrow: "WEEKLY",
+      action: "View Weekly Challenges",
+      icon: <TasksIcon />,
     },
   ];
 

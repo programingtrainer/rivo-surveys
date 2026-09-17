@@ -43,6 +43,20 @@
       "when": 1789490319092,
       "tag": "0005_lonely_tomorrow_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789497030700,
+      "tag": "0006_round_callisto",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789632789857,
+      "tag": "0007_slow_the_leader",
+      "breakpoints": true
     }
   ]
 }

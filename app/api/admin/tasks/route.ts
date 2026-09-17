@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, gt, lt } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { dailyTasks } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 
 function validAudience(value: string) {
   return ["all", "new", "old"].includes(value);
+}
+
+function validVerificationType(value: string) {
+  return ["external_action", "survey_complete", "referral_qualified", "manual"].includes(value);
 }
 
 function parseDate(value: unknown) {
@@ -39,6 +43,12 @@ export async function POST(request: Request) {
     const rewardUsd = Number(body.rewardUsd);
     const audience = String(body.audience ?? "all");
     const actionUrl = body.actionUrl ? String(body.actionUrl).trim() : null;
+    const verificationType = String(body.verificationType ?? "manual").trim();
+    const rawVerificationValue =
+      body.verificationValue === null || body.verificationValue === undefined
+        ? ""
+        : String(body.verificationValue).trim();
+    const verificationValue = rawVerificationValue || null;
     const startsAt = parseDate(body.startsAt);
     const expiresAt = parseDate(body.expiresAt);
 
@@ -56,6 +66,21 @@ export async function POST(request: Request) {
 
     if (!validAudience(audience)) {
       return NextResponse.json({ error: "Invalid audience" }, { status: 400 });
+    }
+
+    if (!validVerificationType(verificationType)) {
+      return NextResponse.json({ error: "Invalid verification type" }, { status: 400 });
+    }
+
+    if (verificationType === "survey_complete" && verificationValue && verificationValue.length > 200) {
+      return NextResponse.json({ error: "Invalid survey verification value" }, { status: 400 });
+    }
+
+    if (verificationType === "referral_qualified") {
+      const referralTarget = Number(verificationValue || "1");
+      if (!Number.isInteger(referralTarget) || referralTarget < 1 || referralTarget > 10000) {
+        return NextResponse.json({ error: "Invalid referral verification value" }, { status: 400 });
+      }
     }
 
     if (!startsAt || !expiresAt || expiresAt <= startsAt) {
@@ -83,6 +108,8 @@ export async function POST(request: Request) {
         rewardUsd: rewardUsd.toFixed(2),
         audience,
         actionUrl,
+        verificationType,
+        verificationValue,
         startsAt,
         expiresAt,
       })

@@ -4,8 +4,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { ADMIN_EMAIL } from "@/lib/config";
 
-const ADMIN_EMAIL = "gatapro901@gmail.com";
 
 export async function DELETE() {
   try {

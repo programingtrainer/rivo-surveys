@@ -146,6 +146,7 @@ export async function GET(request: Request) {
       await db
         .select({
           id: users.id,
+          isBlocked: users.isBlocked,
         })
         .from(users)
         .where(
@@ -156,8 +157,11 @@ export async function GET(request: Request) {
     if (
       existingGoogleUser.length > 0
     ) {
-      userId =
-        existingGoogleUser[0].id;
+      userId = existingGoogleUser[0].id;
+
+      if (existingGoogleUser[0].isBlocked) {
+        return NextResponse.redirect(new URL("/login?error=account_blocked", request.url));
+      }
 
       await db
         .update(users)
@@ -174,6 +178,7 @@ export async function GET(request: Request) {
         await db
           .select({
             id: users.id,
+            isBlocked: users.isBlocked,
           })
           .from(users)
           .where(
@@ -184,8 +189,11 @@ export async function GET(request: Request) {
       if (
         existingEmailUser.length > 0
       ) {
-        userId =
-          existingEmailUser[0].id;
+        userId = existingEmailUser[0].id;
+
+        if (existingEmailUser[0].isBlocked) {
+          return NextResponse.redirect(new URL("/login?error=account_blocked", request.url));
+        }
 
         await db
           .update(users)

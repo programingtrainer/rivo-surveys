@@ -212,29 +212,39 @@ export async function PATCH(request: Request) {
     const withdrawal = claimed[0];
 
     if (withdrawal.currency !== "USDT") {
-      await db
-        .update(withdrawals)
-        .set({
-          status: "failed",
-          failureReason: "Unsupported payout currency.",
-          updatedAt: new Date(),
-        })
-        .where(
-          sql`${withdrawals.id} = ${withdrawal.id} AND ${withdrawals.status} = 'processing'`
-        );
+      const refunded = await db.transaction(async (tx) => {
+        const updated = await tx
+          .update(withdrawals)
+          .set({
+            status: "failed",
+            failureReason: "Unsupported payout currency.",
+            updatedAt: new Date(),
+          })
+          .where(
+            sql`${withdrawals.id} = ${withdrawal.id} AND ${withdrawals.status} = 'processing'`
+          )
+          .returning({
+            userId: withdrawals.userId,
+            amount: withdrawals.amount,
+          });
 
-      await db
-        .update(wallets)
-        .set({
-          balance: sql`${wallets.balance} + ${withdrawal.amount}::numeric`,
-          updatedAt: new Date(),
-        })
-        .where(eq(wallets.userId, withdrawal.userId));
+        if (!updated.length) return false;
+
+        await tx
+          .update(wallets)
+          .set({
+            balance: sql`${wallets.balance} + ${updated[0].amount}::numeric`,
+            updatedAt: new Date(),
+          })
+          .where(eq(wallets.userId, updated[0].userId));
+
+        return true;
+      });
 
       return NextResponse.json(
         {
           error: "Unsupported payout currency. The amount was refunded.",
-          refunded: true,
+          refunded,
         },
         { status: 400 }
       );

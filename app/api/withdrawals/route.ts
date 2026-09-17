@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { WITHDRAWAL } from "@/lib/config";
 
-const MIN_WITHDRAWAL = 15;
-const MAX_DAILY_WITHDRAWAL = 30;
-const FEE_RATE = 0.25;
-const CURRENCY = "USDT";
+const { minAmount: MIN_WITHDRAWAL, maxDailyAmount: MAX_DAILY_WITHDRAWAL, feeRate: FEE_RATE, currency: CURRENCY } = WITHDRAWAL;
 
 export async function POST(request: Request) {
   try {

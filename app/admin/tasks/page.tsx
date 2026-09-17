@@ -10,6 +10,8 @@ type Task = {
   rewardUsd: string;
   audience: string;
   actionUrl: string | null;
+  verificationType: string;
+  verificationValue: string | null;
   startsAt: string;
   expiresAt: string;
 };
@@ -20,6 +22,8 @@ const emptyForm = {
   rewardUsd: "",
   audience: "all",
   actionUrl: "",
+  verificationType: "external_action",
+  verificationValue: "",
   startsAt: "",
   expiresAt: "",
 };
@@ -74,6 +78,8 @@ export default function AdminTasksPage() {
       rewardUsd: String(task.rewardUsd),
       audience: task.audience,
       actionUrl: task.actionUrl ?? "",
+      verificationType: task.verificationType ?? "external_action",
+      verificationValue: task.verificationValue ?? "",
       startsAt: localDateTime(task.startsAt),
       expiresAt: localDateTime(task.expiresAt),
     });
@@ -155,7 +161,7 @@ export default function AdminTasksPage() {
             onClick={openCreate}
             className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-slate-800"
           >
-            + إضافة مهام
+            + Add daily tasks
           </button>
         </div>
 
@@ -244,7 +250,7 @@ export default function AdminTasksPage() {
               <div className="mb-6 flex items-start justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">
-                    {editing ? "Edit Task" : "إضافة مهام"}
+                    {editing ? "Edit Task" : "Add daily tasks"}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
                     Configure the task, audience, reward, and schedule.
@@ -259,7 +265,7 @@ export default function AdminTasksPage() {
                 </button>
               </div>
 
-              <div className="grid gap-5">
+      <div className="grid gap-5">
                 <label className="grid gap-2 text-sm font-semibold">
                   Task name
                   <input
@@ -327,7 +333,7 @@ export default function AdminTasksPage() {
                     placeholder="https://example.com"
                   />
                   <span className="text-xs font-normal text-slate-400">
-                    Optional. Users can open it before claiming the reward.
+                    Navigation only. Opening this URL does not prove completion.
                   </span>
                 </label>
 

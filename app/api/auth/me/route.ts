@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { ADMIN_EMAIL } from "@/lib/config";
 
 export async function GET() {
   try {
@@ -9,6 +10,8 @@ export async function GET() {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
+    const admin = user.email.toLowerCase() === ADMIN_EMAIL;
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -16,6 +19,7 @@ export async function GET() {
         name: user.name,
         avatarUrl: user.avatarUrl,
         isBlocked: user.isBlocked,
+        isAdmin: admin,
       },
     });
   } catch (error) {

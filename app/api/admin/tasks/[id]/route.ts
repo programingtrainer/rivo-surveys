@@ -4,6 +4,10 @@ import { db } from "@/lib/db";
 import { dailyTasks } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 
+function validVerificationType(value: string) {
+  return ["external_action", "survey_complete", "referral_qualified", "manual"].includes(value);
+}
+
 function parseDate(value: unknown) {
   const d = new Date(String(value ?? ""));
   return Number.isNaN(d.getTime()) ? null : d;
@@ -27,6 +31,11 @@ export async function PATCH(
     const rewardUsd = Number(body.rewardUsd);
     const audience = String(body.audience ?? "all");
     const actionUrl = body.actionUrl ? String(body.actionUrl).trim() : null;
+    const verificationType = String(body.verificationType ?? "manual").trim();
+    const verificationValue =
+      body.verificationValue === null || body.verificationValue === undefined
+        ? null
+        : String(body.verificationValue).trim() || null;
     const startsAt = parseDate(body.startsAt);
     const expiresAt = parseDate(body.expiresAt);
 
@@ -59,6 +68,8 @@ export async function PATCH(
         rewardUsd: rewardUsd.toFixed(2),
         audience,
         actionUrl,
+        verificationType,
+        verificationValue,
         startsAt,
         expiresAt,
         updatedAt: new Date(),

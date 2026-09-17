@@ -1,5 +1,6 @@
+import { SITE_URL } from "@/lib/config";
 export default function StructuredData() {
-  const siteUrl = "https://rivo-surveys.programingtrainer2.workers.dev";
+  const siteUrl = SITE_URL;
 
   const websiteSchema = {
     "@context": "https://schema.org",

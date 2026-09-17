@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import {
   cpxTransactions,
   dailyTaskCompletions,
+  telegramCodeRedemptions,
   referrals,
   users,
   wallets,
@@ -13,10 +14,10 @@ import {
 import { desc, eq, sql } from "drizzle-orm";
 
 import { isAdmin } from "@/lib/auth";
+import { ADMIN_EMAIL } from "@/lib/config";
 import AdminUsers from "./AdminUsers";
 import AppHeader from "../AppHeader";
 
-const ADMIN_EMAIL = "gatapro901@gmail.com";
 
 export default async function AdminPage() {
   if (!(await isAdmin())) redirect("/dashboard");
@@ -29,21 +30,40 @@ export default async function AdminPage() {
       totalSurveys: sql<number>`count(*)`.as("total_surveys"),
       successfulSurveys: sql<number>`count(*) filter (
         where lower(${cpxTransactions.status}) = 'completed'
+          and lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
       )`.as("successful_surveys"),
+      outSurveys: sql<number>`count(*) filter (
+        where lower(${cpxTransactions.status}) = 'completed'
+          and lower(coalesce(${cpxTransactions.type}, '')) = 'out'
+      )`.as("out_surveys"),
       failedSurveys: sql<number>`count(*) filter (
-        where lower(${cpxTransactions.status}) in (
-          'failed',
-          'canceled',
-          'cancelled',
-          'reversed',
-          'rejected'
-        )
+        where lower(${cpxTransactions.status}) <> 'completed'
+          or lower(coalesce(${cpxTransactions.type}, '')) not in ('complete', 'out')
       )`.as("failed_surveys"),
-      totalEarnedUsd: sql<string>`coalesce(
-        sum(${cpxTransactions.amountUsd}) filter (
+      totalEarnedUsd: sql<string>`(
+        coalesce(sum(${cpxTransactions.amountUsd}) filter (
           where lower(${cpxTransactions.status}) = 'completed'
-        ),
-        0
+            and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
+        ), 0)
+        +
+        coalesce((
+          select sum(${dailyTaskCompletions.rewardUsd})
+          from ${dailyTaskCompletions}
+          where ${dailyTaskCompletions.userId} = ${cpxTransactions.userId}
+            and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
+        ), 0)
+        +
+        coalesce((
+          select sum(rr.reward_usd)
+          from referral_rewards rr
+          where rr.user_id = ${cpxTransactions.userId}
+        ), 0)
+        +
+        coalesce((
+          select sum(${telegramCodeRedemptions.reward})
+          from ${telegramCodeRedemptions}
+          where ${telegramCodeRedemptions.userId} = ${cpxTransactions.userId}
+        ), 0)
       )`.as("total_earned_usd"),
     })
     .from(cpxTransactions)
@@ -66,7 +86,7 @@ export default async function AdminPage() {
       })
       .from(wallets)
       .innerJoin(users, eq(wallets.userId, users.id))
-      .where(nonAdmin),
+      .where(sql`lower(${users.email}) <> lower(${ADMIN_EMAIL})`),
 
     db
       .select({
@@ -80,13 +100,44 @@ export default async function AdminPage() {
 
         totalSurveys: sql<number>`coalesce(${surveyStats.totalSurveys}, 0)`,
         successfulSurveys: sql<number>`coalesce(${surveyStats.successfulSurveys}, 0)`,
+        outSurveys: sql<number>`coalesce(${surveyStats.outSurveys}, 0)`,
         failedSurveys: sql<number>`coalesce(${surveyStats.failedSurveys}, 0)`,
+
         completedDailyTasks: sql<number>`(
           select count(*)
           from ${dailyTaskCompletions}
           where ${dailyTaskCompletions.userId} = ${users.id}
+            and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
         )`,
-        totalEarnedUsd: sql<string>`coalesce(${surveyStats.totalEarnedUsd}, 0)`,
+
+        totalEarnedUsd: sql<string>`(
+          coalesce((
+            select sum(${cpxTransactions.amountUsd})
+            from ${cpxTransactions}
+            where ${cpxTransactions.userId} = ${users.id}
+              and lower(${cpxTransactions.status}) = 'completed'
+              and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
+          ), 0)
+          +
+          coalesce((
+            select sum(${dailyTaskCompletions.rewardUsd})
+            from ${dailyTaskCompletions}
+            where ${dailyTaskCompletions.userId} = ${users.id}
+              and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
+          ), 0)
+          +
+          coalesce((
+            select sum(rr.reward_usd)
+            from referral_rewards rr
+            where rr.user_id = ${users.id}
+          ), 0)
+          +
+          coalesce((
+            select sum(${telegramCodeRedemptions.reward})
+            from ${telegramCodeRedemptions}
+            where ${telegramCodeRedemptions.userId} = ${users.id}
+          ), 0)
+        )`,
 
         successfulReferrals: sql<number>`(
           select count(*)
@@ -115,7 +166,7 @@ export default async function AdminPage() {
       .orderBy(desc(users.createdAt))
       .limit(100),
   ]);
-  
+
   const totalSiteSurveys = await db
     .select({ count: sql<number>`count(*)` })
     .from(cpxTransactions);
@@ -141,7 +192,7 @@ export default async function AdminPage() {
           </p>
         </div>
 
-        <section className="motion-stagger mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="motion-stagger mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {[
             ["Total users", total],
             ["Active users", active],
@@ -204,7 +255,7 @@ export default async function AdminPage() {
               href="/admin/tasks"
               className="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              إضافة مهام
+              Add daily tasks
               <span className="ml-2">→</span>
             </a>
           </div>

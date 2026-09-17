@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { desc, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { cpxTransactions, dailyTaskCompletions, referrals, users, wallets, withdrawals } from "@/lib/schema";
+import { cpxTransactions, dailyTaskCompletions, telegramCodeRedemptions, referrals, users, wallets, withdrawals } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 
 const ADMIN_EMAIL = "gatapro901@gmail.com";
@@ -44,18 +44,24 @@ export async function GET() {
         from ${cpxTransactions}
         where ${cpxTransactions.userId} = ${users.id}
           and lower(${cpxTransactions.status}) = 'completed'
+          and lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
+      )`,
+
+      outSurveys: sql<number>`(
+        select count(*)
+        from ${cpxTransactions}
+        where ${cpxTransactions.userId} = ${users.id}
+          and lower(${cpxTransactions.status}) = 'completed'
+          and lower(coalesce(${cpxTransactions.type}, '')) = 'out'
       )`,
 
       failedSurveys: sql<number>`(
         select count(*)
         from ${cpxTransactions}
         where ${cpxTransactions.userId} = ${users.id}
-          and lower(${cpxTransactions.status}) in (
-            'failed',
-            'canceled',
-            'cancelled',
-            'reversed',
-            'rejected'
+          and (
+            lower(${cpxTransactions.status}) <> 'completed'
+            or lower(coalesce(${cpxTransactions.type}, '')) not in ('complete', 'out')
           )
       )`,
 
@@ -72,12 +78,34 @@ export async function GET() {
           and lower(${withdrawals.status}) = 'paid'
       ), '0')`,
 
-      totalEarnedUsd: sql<string>`coalesce((
-        select sum(${cpxTransactions.amountUsd})
-        from ${cpxTransactions}
-        where ${cpxTransactions.userId} = ${users.id}
-          and lower(${cpxTransactions.status}) = 'completed'
-      ), '0')`,
+      totalEarnedUsd: sql<string>`(
+        coalesce((
+          select sum(${cpxTransactions.amountUsd})
+          from ${cpxTransactions}
+          where ${cpxTransactions.userId} = ${users.id}
+            and lower(${cpxTransactions.status}) = 'completed'
+            and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
+        ), 0)
+        +
+        coalesce((
+          select sum(${dailyTaskCompletions.rewardUsd})
+          from ${dailyTaskCompletions}
+          where ${dailyTaskCompletions.userId} = ${users.id}
+            and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
+        ), 0)
+        +
+        coalesce((
+          select sum(rr.reward_usd)
+          from referral_rewards rr
+          where rr.user_id = ${users.id}
+        ), 0)
+        +
+        coalesce((
+          select sum(${telegramCodeRedemptions.reward})
+          from ${telegramCodeRedemptions}
+          where ${telegramCodeRedemptions.userId} = ${users.id}
+        ), 0)
+      )`,
 
       successfulReferrals: sql<number>`(
         select count(*)

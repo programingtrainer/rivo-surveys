@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rivo Surveys
 
-## Getting Started
+Rivo Surveys is a Next.js rewards platform with survey integration, user accounts, challenges, referrals, wallet balances, and FaucetPay withdrawals.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 + React 19
+- TypeScript
+- Drizzle ORM
+- PostgreSQL / Neon
+- CPX Research API + postback
+- Cloudflare Turnstile
+- Google OAuth
+- FaucetPay USDT payouts
+- OpenNext / Cloudflare deployment support
+
+## Local setup
+
+1. Install dependencies:
+
+```bash
+npm ci
+```
+
+2. Copy `.env.example` to `.env.local` and fill in the real values.
+
+3. Apply the Drizzle migrations to the configured PostgreSQL database.
+
+4. Start development:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Production checks:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run lint
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Important environment variables
 
-## Learn More
+- `DATABASE_URL`
+- `CPX_APP_ID`
+- `CPX_SECURE_HASH`
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- `TURNSTILE_SECRET_KEY`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `FAUCETPAY_API_KEY`
+- `ADMIN_EMAIL`
+- `NEXT_PUBLIC_SITE_URL`
 
-To learn more about Next.js, take a look at the following resources:
+Never commit `.env.local` or other real environment files.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Core flows
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Authentication: email/password + Google OAuth
+- Anti-bot protection: Cloudflare Turnstile on registration/login
+- Surveys: CPX Research API, tracked attempts, signed postbacks, duplicate protection, reversals
+- Challenges: Telegram codes, daily tasks, referrals
+- Wallet: USD-denominated Rivo balance
+- Withdrawals: 25% Rivo fee, minimum $15, daily $30 gross limit, one active withdrawal at a time
+- Payouts: FaucetPay USDT with idempotent withdrawal processing
+- Admin: users, tasks, Telegram codes, and withdrawal operations
 
-## Deploy on Vercel
+## Daily tasks
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Normal external-action tasks are instant-claim rewards and do not require administrator approval. Survey-completion and referral-completion tasks are verified server-side before crediting the reward.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Security notes
+
+- Sessions are stored as SHA-256 token hashes in the database and use an HTTP-only cookie.
+- CPX postbacks are verified with the configured secure hash and transaction IDs are unique.
+- Financial/task reward mutations use database transactions where multiple writes must succeed together.
+- Referral/debug diagnostic endpoints are not exposed in the production project.
