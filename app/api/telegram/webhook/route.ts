@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
-import { createHash } from "crypto";
+async function hashToken(token: string) {
+  const data = new TextEncoder().encode(token);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
@@ -11,9 +18,7 @@ import {
   sendTelegramMessage,
 } from "@/lib/telegram";
 
-function hashToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
+
 
 function getChatId() {
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -55,7 +60,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    const tokenHash = hashToken(token);
+    const tokenHash = await hashToken(token);
 
     const tokenRows = await db
       .select()
