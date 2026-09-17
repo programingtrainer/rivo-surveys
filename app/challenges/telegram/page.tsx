@@ -18,6 +18,38 @@ export default function TelegramCodesPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<RedeemResponse | null>(null);
 
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [telegramUrl, setTelegramUrl] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  async function handleTelegramLink() {
+    setLinkLoading(true);
+    setLinkError(null);
+    setTelegramUrl(null);
+
+    try {
+      const response = await fetch("/api/telegram/link", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.telegramUrl) {
+        setLinkError(data?.error || "Unable to create a Telegram linking link.");
+        return;
+      }
+
+      setTelegramUrl(data.telegramUrl);
+    } catch {
+      setLinkError("Something went wrong. Please try again.");
+    } finally {
+      setLinkLoading(false);
+    }
+  }
+
   async function handleRedeem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -89,6 +121,88 @@ export default function TelegramCodesPage() {
             </p>
           </div>
         </div>
+
+        <section className="motion-card mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-lg font-bold text-white">
+                  TG
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Account Verification
+                  </p>
+                  <h2 className="mt-1 text-xl font-bold text-slate-900">
+                    Link your Telegram account
+                  </h2>
+                </div>
+              </div>
+
+              <p className="mt-4 text-sm leading-6 text-slate-500">
+                Connect your Telegram account to Rivo Surveys. We verify the
+                Telegram account directly with our bot before it can be used
+                for Telegram-based Daily Tasks.
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+                <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">
+                  Secure one-time link
+                </span>
+                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">
+                  Membership verification
+                </span>
+              </div>
+            </div>
+
+            <div className="w-full lg:max-w-xs">
+              <button
+                type="button"
+                onClick={handleTelegramLink}
+                disabled={linkLoading}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {linkLoading ? "Creating secure link..." : "Link Telegram"}
+                {!linkLoading ? <span className="ml-2">↗</span> : null}
+              </button>
+
+              {linkError ? (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {linkError}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {telegramUrl ? (
+            <div className="motion-fade-up mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+              <p className="text-sm font-bold text-emerald-800">
+                Your secure Telegram link is ready.
+              </p>
+
+              <p className="mt-1 text-sm leading-6 text-emerald-700">
+                Open Telegram and press Start. The link expires in 10 minutes
+                and can only be used once.
+              </p>
+
+              <a
+                href={telegramUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-5 py-3.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-emerald-800 sm:w-auto"
+              >
+                Open RivoSurveysBot
+                <span className="ml-2">↗</span>
+              </a>
+
+              <p className="mt-3 text-xs text-emerald-700">
+                After Telegram confirms the link, return here. Your account
+                will be ready for Telegram verification tasks.
+              </p>
+            </div>
+          ) : null}
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <section className="motion-card rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
