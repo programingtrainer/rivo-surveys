@@ -9,7 +9,7 @@ function validAudience(value: string) {
 }
 
 function validVerificationType(value: string) {
-  return ["external_action", "survey_complete", "referral_qualified", "manual"].includes(value);
+  return ["external_action", "survey_complete", "referral_qualified", "telegram_membership", "manual"].includes(value);
 }
 
 function parseDate(value: unknown) {

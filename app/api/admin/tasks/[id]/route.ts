@@ -5,7 +5,7 @@ import { dailyTasks } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 
 function validVerificationType(value: string) {
-  return ["external_action", "survey_complete", "referral_qualified", "manual"].includes(value);
+  return ["external_action", "survey_complete", "referral_qualified", "telegram_membership", "manual"].includes(value);
 }
 
 function parseDate(value: unknown) {
