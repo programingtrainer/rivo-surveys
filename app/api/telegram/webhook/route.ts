@@ -246,9 +246,14 @@ export async function POST(request: Request) {
     console.error("============================================");
 
     if (telegramUserId) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message.slice(0, 300)
+          : "Unknown server error";
+
       await safeSendMessage(
         telegramUserId,
-        "⚠️ Something went wrong while linking your Telegram account. Please generate a new linking link from Rivo and try again.",
+        `⚠️ Rivo linking error.\\n\\n${errorMessage}\\n\\nPlease generate a new linking link and try again.`,
       );
     }
 
