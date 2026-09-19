@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { and, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  cpxTransactions,
   dailyTaskCompletions,
   dailyTasks,
   referrals,
-  surveyAttempts,
   telegramAccounts,
   users,
-  wallets,
 } from "@/lib/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { getTelegramChatMember } from "@/lib/telegram";
@@ -26,13 +25,19 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   try {
     const body = await request.json();
+
     const taskId =
-      typeof body?.taskId === "string" ? body.taskId.trim() : "";
+      typeof body?.taskId === "string"
+        ? body.taskId.trim()
+        : "";
 
     if (!taskId) {
       return NextResponse.json(
@@ -64,7 +69,9 @@ export async function POST(request: Request) {
     }
 
     const [userRecord] = await db
-      .select({ createdAt: users.createdAt })
+      .select({
+        createdAt: users.createdAt,
+      })
       .from(users)
       .where(eq(users.id, user.id))
       .limit(1);
@@ -97,7 +104,9 @@ export async function POST(request: Request) {
     const [existing] = await db
       .select({
         id: dailyTaskCompletions.id,
-        verificationStatus: dailyTaskCompletions.verificationStatus,
+        verificationStatus:
+          dailyTaskCompletions.verificationStatus,
+        evidenceId: dailyTaskCompletions.evidenceId,
       })
       .from(dailyTaskCompletions)
       .where(
@@ -119,6 +128,7 @@ export async function POST(request: Request) {
 
     let verificationStatus = "verified";
     let evidenceId = "task-claim";
+    let lockKey = `task:${task.id}:user:${user.id}`;
 
     /*
      * TELEGRAM MEMBERSHIP
@@ -133,7 +143,10 @@ export async function POST(request: Request) {
 
       if (!chatId) {
         return NextResponse.json(
-          { error: "Telegram verification is not configured" },
+          {
+            error:
+              "Telegram verification is not configured",
+          },
           { status: 500 },
         );
       }
@@ -177,20 +190,37 @@ export async function POST(request: Request) {
         );
       }
 
-      evidenceId = `telegram:${telegramAccount.telegramUserId}:${membership.status}`;
-    } else if (task.verificationType === "survey_complete") {
+      evidenceId =
+        `telegram:${telegramAccount.telegramUserId}:${membership.status}`;
+    }
+
+    /*
+     * CPX SURVEY COMPLETION
+     *
+     * IMPORTANT:
+     * The CPX transaction is the source of truth.
+     * survey_attempts is NOT used as the verification source.
+     *
+     * A valid survey completion must have:
+     * - the same user
+     * - CPX status = completed
+     * - CPX type = complete
+     * - created inside the task window
+     * - matching offer_id when the task specifies one
+     */
+    else if (task.verificationType === "survey_complete") {
       const conditions = [
-        eq(surveyAttempts.userId, user.id),
-        eq(surveyAttempts.status, "completed"),
-        eq(surveyAttempts.type, "complete"),
-        gte(surveyAttempts.completedAt, task.startsAt),
-        lte(surveyAttempts.completedAt, task.expiresAt),
+        eq(cpxTransactions.userId, user.id),
+        eq(cpxTransactions.status, "completed"),
+        sql`LOWER(COALESCE(${cpxTransactions.type}, '')) = 'complete'`,
+        gte(cpxTransactions.createdAt, task.startsAt),
+        lt(cpxTransactions.createdAt, task.expiresAt),
       ];
 
       if (task.verificationValue?.trim()) {
         conditions.push(
           eq(
-            surveyAttempts.offerId,
+            cpxTransactions.offerId,
             task.verificationValue.trim(),
           ),
         );
@@ -198,40 +228,58 @@ export async function POST(request: Request) {
 
       const [evidence] = await db
         .select({
-          id: surveyAttempts.id,
-          transactionId: surveyAttempts.transactionId,
+          transactionId: cpxTransactions.transactionId,
+          offerId: cpxTransactions.offerId,
+          createdAt: cpxTransactions.createdAt,
         })
-        .from(surveyAttempts)
+        .from(cpxTransactions)
         .where(and(...conditions))
-        .orderBy(sql`${surveyAttempts.completedAt} DESC`)
+        .orderBy(sql`${cpxTransactions.createdAt} DESC`)
         .limit(1);
 
       if (!evidence) {
         return NextResponse.json(
           {
             error:
-              "No verified successful survey was found for this task",
+              "No verified successful CPX survey was found for this task",
           },
           { status: 400 },
         );
       }
 
-      evidenceId = evidence.transactionId || evidence.id;
-    } else if (task.verificationType === "referral_qualified") {
-      const parsedTarget = Number(task.verificationValue || "1");
+      evidenceId = `cpx:${evidence.transactionId}`;
+
+      /*
+       * Serialize all claims using the same CPX transaction.
+       * This prevents two concurrent requests from using the
+       * same CPX transaction for different Daily Tasks.
+       */
+      lockKey = evidenceId;
+    }
+
+    /*
+     * QUALIFIED REFERRAL
+     */
+    else if (task.verificationType === "referral_qualified") {
+      const parsedTarget = Number(
+        task.verificationValue || "1",
+      );
+
       const target = Number.isFinite(parsedTarget)
         ? Math.max(1, Math.floor(parsedTarget))
         : 1;
 
       const [countRow] = await db
-        .select({ count: sql<number>`count(*)` })
+        .select({
+          count: sql<number>`count(*)`,
+        })
         .from(referrals)
         .where(
           and(
             eq(referrals.referrerUserId, user.id),
             eq(referrals.status, "qualified"),
             gte(referrals.qualifiedAt, task.startsAt),
-            lte(referrals.qualifiedAt, task.expiresAt),
+            lt(referrals.qualifiedAt, task.expiresAt),
           ),
         );
 
@@ -240,14 +288,17 @@ export async function POST(request: Request) {
       if (count < target) {
         return NextResponse.json(
           {
-            error: `You need ${target} qualified referral(s) for this task`,
+            error:
+              `You need ${target} qualified referral(s) for this task`,
           },
           { status: 400 },
         );
       }
 
       evidenceId = `referrals:${count}`;
-    } else {
+    }
+
+    else {
       return NextResponse.json(
         {
           error:
@@ -258,28 +309,131 @@ export async function POST(request: Request) {
     }
 
     /*
-     * Rewarding is intentionally performed only after verification.
+     * ATOMIC CLAIM + WALLET CREDIT
      *
-     * The completion row is inserted first with ON CONFLICT DO NOTHING.
-     * This gives us an idempotency barrier for task/user.
+     * No Drizzle transaction is used because the current
+     * neon-http driver does not support db.transaction().
+     *
+     * Instead, PostgreSQL performs:
+     *
+     * 1. transaction-level advisory lock
+     * 2. completion insert/update
+     * 3. wallet credit
+     *
+     * inside ONE SQL statement.
+     *
+     * The advisory lock also prevents the same CPX transaction
+     * from being claimed concurrently by another Daily Task.
      */
-    if (existing) {
-      const [updated] = await db
-        .update(dailyTaskCompletions)
-        .set({
-          verificationStatus,
-          evidenceId,
-          verifiedAt: now,
+    const claimResult = await db.execute(sql`
+      WITH lock AS (
+        SELECT pg_advisory_xact_lock(
+          hashtextextended(${lockKey}, 0)
+        ) AS locked
+      ),
+
+      claim AS (
+        INSERT INTO daily_task_completions (
+          task_id,
+          user_id,
+          reward_usd,
+          verification_status,
+          evidence_id,
+          verified_at,
+          completed_at
+        )
+        SELECT
+          ${task.id},
+          ${user.id},
+          ${task.rewardUsd},
+          ${verificationStatus},
+          ${evidenceId},
+          ${now},
+          ${now}
+        FROM lock
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM daily_task_completions other
+          WHERE other.evidence_id = ${evidenceId}
+            AND NOT (
+              other.task_id = ${task.id}
+              AND other.user_id = ${user.id}
+            )
+        )
+        ON CONFLICT (task_id, user_id)
+        DO UPDATE SET
+          verification_status = EXCLUDED.verification_status,
+          evidence_id = EXCLUDED.evidence_id,
+          verified_at = EXCLUDED.verified_at,
+          completed_at = EXCLUDED.completed_at
+        WHERE daily_task_completions.verification_status = 'pending'
+        RETURNING
+          id,
+          task_id,
+          user_id,
+          reward_usd,
+          verification_status,
+          evidence_id,
+          verified_at,
+          completed_at
+      ),
+
+      wallet_credit AS (
+        INSERT INTO wallets (
+          user_id,
+          balance,
+          updated_at
+        )
+        SELECT
+          user_id,
+          reward_usd,
+          ${now}
+        FROM claim
+        ON CONFLICT (user_id)
+        DO UPDATE SET
+          balance = wallets.balance + EXCLUDED.balance,
+          updated_at = ${now}
+        RETURNING user_id
+      )
+
+      SELECT
+        claim.id,
+        claim.task_id,
+        claim.user_id,
+        claim.reward_usd,
+        claim.verification_status,
+        claim.evidence_id,
+        claim.verified_at,
+        claim.completed_at,
+        EXISTS (
+          SELECT 1
+          FROM wallet_credit wc
+          WHERE wc.user_id = claim.user_id
+        ) AS wallet_credited
+      FROM claim
+    `);
+
+    if (claimResult.rows.length === 0) {
+      const [currentCompletion] = await db
+        .select({
+          id: dailyTaskCompletions.id,
+          verificationStatus:
+            dailyTaskCompletions.verificationStatus,
+          evidenceId: dailyTaskCompletions.evidenceId,
         })
+        .from(dailyTaskCompletions)
         .where(
           and(
-            eq(dailyTaskCompletions.id, existing.id),
-            eq(dailyTaskCompletions.verificationStatus, "pending"),
+            eq(dailyTaskCompletions.taskId, task.id),
+            eq(dailyTaskCompletions.userId, user.id),
           ),
         )
-        .returning();
+        .limit(1);
 
-      if (!updated) {
+      if (
+        currentCompletion?.verificationStatus ===
+        "verified"
+      ) {
         return NextResponse.json({
           success: true,
           alreadyClaimed: true,
@@ -288,71 +442,61 @@ export async function POST(request: Request) {
         });
       }
 
-      await db
-        .update(wallets)
-        .set({
-          balance: sql`${wallets.balance} + ${task.rewardUsd}`,
-          updatedAt: now,
-        })
-        .where(eq(wallets.userId, user.id));
+      if (
+        task.verificationType === "survey_complete"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "This CPX survey completion has already been used for a Daily Task",
+          },
+          { status: 409 },
+        );
+      }
 
-      return NextResponse.json({
-        success: true,
-        completion: updated,
-        verificationStatus,
-        rewardCredited: true,
-      });
-    }
-
-    const [completion] = await db
-      .insert(dailyTaskCompletions)
-      .values({
-        taskId: task.id,
-        userId: user.id,
-        rewardUsd: task.rewardUsd,
-        verificationStatus,
-        evidenceId,
-        verifiedAt: now,
-      })
-      .onConflictDoNothing({
-        target: [
-          dailyTaskCompletions.taskId,
-          dailyTaskCompletions.userId,
-        ],
-      })
-      .returning();
-
-    if (!completion) {
-      return NextResponse.json({
-        success: true,
-        alreadyClaimed: true,
-        verificationStatus: "verified",
-        rewardCredited: false,
-      });
-    }
-
-    await db
-      .insert(wallets)
-      .values({
-        userId: user.id,
-        balance: task.rewardUsd,
-      })
-      .onConflictDoUpdate({
-        target: wallets.userId,
-        set: {
-          balance: sql`${wallets.balance} + ${task.rewardUsd}`,
-          updatedAt: now,
+      return NextResponse.json(
+        {
+          error:
+            "This task has already been processed",
         },
-      });
+        { status: 409 },
+      );
+    }
+
+    const completion = claimResult.rows[0] as {
+      id: string;
+      task_id: string;
+      user_id: string;
+      reward_usd: string;
+      verification_status: string;
+      evidence_id: string | null;
+      verified_at: string | null;
+      completed_at: string;
+      wallet_credited: boolean;
+    };
 
     return NextResponse.json({
       success: true,
-      completion,
-      verificationStatus,
-      rewardCredited: true,
+      completion: {
+        id: completion.id,
+        taskId: completion.task_id,
+        userId: completion.user_id,
+        rewardUsd: completion.reward_usd,
+        verificationStatus:
+          completion.verification_status,
+        evidenceId: completion.evidence_id,
+        verifiedAt: completion.verified_at,
+        completedAt: completion.completed_at,
+      },
+      verificationStatus:
+        completion.verification_status,
+      rewardCredited:
+        Boolean(completion.wallet_credited),
     });
   } catch (error) {
-    console.error("========== TASK COMPLETION ERROR ==========");
+    console.error(
+      "========== TASK COMPLETION ERROR ==========",
+    );
 
     if (error instanceof Error) {
       console.error("NAME:", error.name);
@@ -363,7 +507,9 @@ export async function POST(request: Request) {
       console.error("RAW ERROR:", error);
     }
 
-    console.error("============================================");
+    console.error(
+      "============================================",
+    );
 
     return NextResponse.json(
       { error: "Failed to process task completion" },

@@ -19,34 +19,70 @@ function money(value: string | number) {
   return `$${Number(value || 0).toFixed(2)}`;
 }
 
-function isVerifiedTask(task: Task) {
+function isAutomaticTask(task: Task) {
   return (
+    task.verificationType === "telegram_membership" ||
     task.verificationType === "survey_complete" ||
     task.verificationType === "referral_qualified"
   );
 }
 
 function taskType(task: Task) {
-  if (task.verificationType === "survey_complete") return "Survey verification";
-  if (task.verificationType === "referral_qualified") return "Referral verification";
-  return "Quick reward";
+  switch (task.verificationType) {
+    case "telegram_membership":
+      return "Telegram verification";
+    case "survey_complete":
+      return "Survey verification";
+    case "referral_qualified":
+      return "Referral verification";
+    case "manual":
+      return "Manual verification";
+    case "external_action":
+      return "External action";
+    default:
+      return "Reward task";
+  }
+}
+
+function verificationMessage(task: Task, opened: boolean) {
+  switch (task.verificationType) {
+    case "telegram_membership":
+      return "Join the Rivo Telegram community, then verify your membership.";
+    case "survey_complete":
+      return "Complete the required CPX survey. Rivo will verify the completion automatically.";
+    case "referral_qualified":
+      return "Complete the required referral target. Rivo will verify your referrals automatically.";
+    case "manual":
+      return "This task requires manual verification before the reward can be credited.";
+    case "external_action":
+      return opened
+        ? "The external task has been opened. Automatic verification is not available for this task."
+        : "Open the external task. Automatic verification is not available for this task.";
+    default:
+      return opened
+        ? "Task opened. You can continue with the verification."
+        : "Open the task and follow the instructions.";
+  }
 }
 
 export default function DailyTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [opened, setOpened] = useState<Record<string, boolean>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     try {
       const saved = JSON.parse(
         sessionStorage.getItem("rivo-opened-tasks") || "{}",
       );
-      setOpened(saved);
+
+      if (saved && typeof saved === "object") {
+        setOpened(saved);
+      }
     } catch {}
   }, []);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [notice, setNotice] = useState("");
 
   async function loadTasks() {
     try {
@@ -71,7 +107,9 @@ export default function DailyTasksPage() {
 
   useEffect(() => {
     loadTasks();
+
     const timer = window.setInterval(loadTasks, 30000);
+
     return () => window.clearInterval(timer);
   }, []);
 
@@ -109,12 +147,12 @@ export default function DailyTasksPage() {
   }
 
   async function claimTask(task: Task) {
-    const needsOpen =
-      !isVerifiedTask(task) &&
-      !!task.actionUrl;
-
-    if (needsOpen && !opened[task.id]) {
-      setNotice("Open the task first, then claim your reward.");
+    if (!isAutomaticTask(task)) {
+      setNotice(
+        task.verificationType === "manual"
+          ? "This task requires manual verification."
+          : "This task does not support automatic verification yet.",
+      );
       return;
     }
 
@@ -127,13 +165,17 @@ export default function DailyTasksPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ taskId: task.id }),
+        body: JSON.stringify({
+          taskId: task.id,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to claim this task.");
+        throw new Error(
+          data?.error || "The task could not be verified.",
+        );
       }
 
       const credited =
@@ -149,7 +191,7 @@ export default function DailyTasksPage() {
                 completed: credited,
                 verificationStatus: credited
                   ? "verified"
-                  : data.verificationStatus,
+                  : data.verificationStatus ?? item.verificationStatus,
               }
             : item,
         ),
@@ -158,13 +200,13 @@ export default function DailyTasksPage() {
       setNotice(
         credited
           ? `${money(task.rewardUsd)} was added to your wallet.`
-          : "This task could not be verified yet.",
+          : "The task was verified, but the reward has not been credited yet.",
       );
     } catch (error) {
       setNotice(
         error instanceof Error
           ? error.message
-          : "Unable to claim this task.",
+          : "Unable to verify this task.",
       );
     } finally {
       setBusy(null);
@@ -174,19 +216,20 @@ export default function DailyTasksPage() {
   return (
     <main className="min-h-screen bg-[#f7f8fa] text-slate-900">
       <AppHeader />
-      <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
 
+      <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
         <div className="mb-4">
           <button
             type="button"
-            onClick={() => window.location.href = "/challenges"}
+            onClick={() => {
+              window.location.href = "/challenges";
+            }}
             className="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-slate-900"
           >
             ← Back to Challenges
           </button>
         </div>
 
-        {/* Rivo-style hero */}
         <section className="overflow-hidden rounded-[28px] bg-[#111111] px-6 py-7 shadow-sm sm:px-8 sm:py-8">
           <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -199,8 +242,8 @@ export default function DailyTasksPage() {
               </h1>
 
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
-                Complete simple tasks, claim your rewards, and grow your
-                available balance.
+                Complete simple tasks, verify your progress, and earn
+                additional rewards.
               </p>
             </div>
 
@@ -209,6 +252,7 @@ export default function DailyTasksPage() {
                 <p className="text-xs font-medium text-slate-400">
                   Available
                 </p>
+
                 <p className="mt-1 text-2xl font-black text-white">
                   {available.length}
                 </p>
@@ -218,6 +262,7 @@ export default function DailyTasksPage() {
                 <p className="text-xs font-medium text-slate-400">
                   Completed
                 </p>
+
                 <p className="mt-1 text-2xl font-black text-white">
                   {completed.length}
                 </p>
@@ -262,7 +307,7 @@ export default function DailyTasksPage() {
         {!loading && tasks.length > 0 && (
           <section className="mt-6 grid gap-5 md:grid-cols-2">
             {tasks.map((task) => {
-              const verifiedTask = isVerifiedTask(task);
+              const automatic = isAutomaticTask(task);
               const hasOpened = !!opened[task.id];
               const isCompleted = !!task.completed;
 
@@ -304,6 +349,7 @@ export default function DailyTasksPage() {
                       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
                         Reward
                       </p>
+
                       <p className="text-lg font-black text-slate-900">
                         +{money(task.rewardUsd)}
                       </p>
@@ -319,11 +365,7 @@ export default function DailyTasksPage() {
                     <>
                       <div className="mt-5 rounded-2xl bg-slate-50 px-4 py-3">
                         <p className="text-xs font-semibold text-slate-500">
-                          {verifiedTask
-                            ? "Completion is verified automatically."
-                            : hasOpened
-                              ? "Task opened. You can now claim your reward."
-                              : "Open the task, then claim your reward."}
+                          {verificationMessage(task, hasOpened)}
                         </p>
                       </div>
 
@@ -340,12 +382,16 @@ export default function DailyTasksPage() {
                         <button
                           type="button"
                           onClick={() => claimTask(task)}
-                          disabled={busy === task.id}
+                          disabled={busy === task.id || !automatic}
                           className="rounded-2xl bg-[#111111] px-4 py-3.5 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-slate-300"
                         >
                           {busy === task.id
-                            ? "Processing..."
-                            : "✓ Claim Reward"}
+                            ? "Verifying..."
+                            : automatic
+                              ? "✓ Verify & Claim"
+                              : task.verificationType === "manual"
+                                ? "Manual Verification"
+                                : "Verification Unavailable"}
                         </button>
                       </div>
                     </>
