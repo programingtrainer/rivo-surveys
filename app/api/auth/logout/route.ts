@@ -1,64 +1,32 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { eq } from "drizzle-orm";
-
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { sessions } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(request: Request) {
   try {
-    const cookieHeader = request.headers.get("cookie") || "";
-
-    const match = cookieHeader.match(
-      /(?:^|;\s*)rivo_session=([^;]+)/
-    );
-
-    const token = match?.[1];
+    const cookieStore = await cookies();
+    const token = cookieStore.get("rivo_session")?.value;
 
     if (token) {
-      const tokenHash = crypto
-        .createHash("sha256")
-        .update(token)
-        .digest("hex");
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
       await db
         .delete(sessions)
         .where(eq(sessions.tokenHash, tokenHash));
     }
 
-    const response = NextResponse.json({
-      success: true,
-    });
+    cookieStore.delete("rivo_session");
 
-    response.cookies.set({
-      name: "rivo_session",
-      value: "",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 0,
-    });
-
-    return response;
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Logout error:", error);
 
-    const response = NextResponse.json(
-      { error: "Unable to log out." },
-      { status: 500 }
-    );
+    const cookieStore = await cookies();
+    cookieStore.delete("rivo_session");
 
-    response.cookies.set({
-      name: "rivo_session",
-      value: "",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 0,
-    });
-
-    return response;
+    return NextResponse.json({ success: true });
   }
 }

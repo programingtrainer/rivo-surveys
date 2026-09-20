@@ -1,5 +1,59 @@
-export default function Home() {
-          return (
+import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
+import LogoutButton from "@/app/components/LogoutButton";
+
+export default async function Home() {
+  const user = await getCurrentUser();
+
+  if (user) {
+    return (
+      <main className="min-h-screen bg-white text-gray-900">
+        <section className="flex min-h-screen items-center justify-center px-6 py-16">
+          <div className="w-full max-w-xl text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-2xl font-bold text-gray-900">
+              R
+            </div>
+
+            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
+              Rivo Surveys
+            </p>
+
+            <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
+              Welcome back{user.name ? `, ${user.name}` : ""}.
+            </h1>
+
+            <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-gray-600 md:text-lg">
+              Your account is already signed in. Continue to your dashboard or choose another account.
+            </p>
+
+            <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link
+                href="/dashboard"
+                className="rounded-lg bg-black px-6 py-3 font-medium text-white transition hover:bg-gray-800"
+              >
+                Go to Dashboard
+              </Link>
+
+              <LogoutButton />
+            </div>
+
+            <Link
+              href="/register"
+              className="mt-6 inline-block text-sm font-medium text-gray-600 underline underline-offset-4 hover:text-gray-950"
+            >
+              Create new account
+            </Link>
+
+            <p className="mt-8 text-sm text-gray-400">
+              Your sign-in remains active while you use Rivo. After 7 days without activity, you will need to sign in again.
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  return (
               <main className="min-h-screen bg-white text-gray-900">
                     <header className="border-b border-gray-100 bg-white">
                             <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
@@ -223,4 +277,4 @@ Ready to get started?
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 </footer>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </main>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       );
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+}

@@ -199,3 +199,61 @@ export const dailyTaskCompletions = pgTable("daily_task_completions", {
   taskIdIdx: index("daily_task_completions_task_id_idx").on(table.taskId),
   userIdIdx: index("daily_task_completions_user_id_idx").on(table.userId),
 }));
+
+
+export const weeklyChallenges = pgTable("weekly_challenges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  challengeType: text("challenge_type").notNull(),
+  target: numeric("target", { precision: 12, scale: 2 }),
+  rewardUsd: numeric("reward_usd", { precision: 12, scale: 2 }),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  status: text("status").notNull().default("scheduled"),
+  createdBy: uuid("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  startsAtIdx: index("weekly_challenges_starts_at_idx").on(table.startsAt),
+  expiresAtIdx: index("weekly_challenges_expires_at_idx").on(table.expiresAt),
+  statusIdx: index("weekly_challenges_status_idx").on(table.status),
+}));
+
+export const weeklyChallengePrizes = pgTable("weekly_challenge_prizes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  challengeId: uuid("challenge_id")
+    .notNull()
+    .references(() => weeklyChallenges.id, { onDelete: "cascade" }),
+  rank: numeric("rank", { precision: 10, scale: 0 }).notNull(),
+  rewardUsd: numeric("reward_usd", { precision: 12, scale: 2 }).notNull(),
+}, (table) => ({
+  challengeRankUnique: uniqueIndex("weekly_challenge_prizes_challenge_rank_unique")
+    .on(table.challengeId, table.rank),
+  challengeIdIdx: index("weekly_challenge_prizes_challenge_id_idx")
+    .on(table.challengeId),
+}));
+
+export const weeklyChallengeWinners = pgTable("weekly_challenge_winners", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  challengeId: uuid("challenge_id")
+    .notNull()
+    .references(() => weeklyChallenges.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  rank: numeric("rank", { precision: 10, scale: 0 }).notNull(),
+  rewardUsd: numeric("reward_usd", { precision: 12, scale: 2 }).notNull(),
+  settledAt: timestamp("settled_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}, (table) => ({
+  challengeUserUnique: uniqueIndex("weekly_challenge_winners_challenge_user_unique")
+    .on(table.challengeId, table.userId),
+  challengeRankUnique: uniqueIndex("weekly_challenge_winners_challenge_rank_unique")
+    .on(table.challengeId, table.rank),
+  challengeIdIdx: index("weekly_challenge_winners_challenge_id_idx")
+    .on(table.challengeId),
+  userIdIdx: index("weekly_challenge_winners_user_id_idx")
+    .on(table.userId),
+}));

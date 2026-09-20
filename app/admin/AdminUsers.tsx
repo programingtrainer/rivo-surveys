@@ -18,6 +18,8 @@ type User = {
   withdrawalCount: number | string;
   totalWithdrawn: string | number;
   totalEarnedUsd: string | number;
+  weeklyChallengeWins: number | string;
+  weeklyChallengeEarningsUsd: string | number;
   successfulReferrals: number | string;
   pendingReferrals?: number | string;
   referralEarnings?: string | number;
@@ -72,7 +74,21 @@ type UserDetails = {
     updatedAt: string;
     paidWithdrawalCount: number | string;
     totalRequestedWithdrawals: string | number;
+    weeklyChallengeWins: number | string;
+    weeklyChallengeEarningsUsd: string | number;
   };
+  weeklyChallenges: {
+    id: string;
+    challengeId: string;
+    title: string;
+    description: string;
+    rank: number;
+    rewardUsd: string | number;
+    startsAt: string | null;
+    expiresAt: string | null;
+    settledAt: string | null;
+    status: string;
+  }[];
   surveys: Survey[];
   surveyAttempts: SurveyAttempt[];
   dailyTasks: {
@@ -374,6 +390,10 @@ export default function AdminUsers({
                 </th>
 
                 <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
+                  Weekly Wins
+                </th>
+
+                <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
                   Successful
                 </th>
 
@@ -443,6 +463,16 @@ export default function AdminUsers({
                     <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
                       {count(u.successfulReferrals)}
                     </span>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                      {count(u.weeklyChallengeWins)}
+                    </span>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      {money(u.weeklyChallengeEarningsUsd)}
+                    </p>
                   </td>
 
                   <td className="px-5 py-4">
@@ -676,6 +706,26 @@ export default function AdminUsers({
                       </p>
                     </div>
 
+                    <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-violet-600">
+                        Weekly Challenge Wins
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-violet-700">
+                        {count(details.user.weeklyChallengeWins)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-emerald-600">
+                        Weekly Challenge Earnings
+                      </p>
+
+                      <p className="mt-2 text-xl font-bold text-emerald-700">
+                        {money(details.user.weeklyChallengeEarningsUsd)}
+                      </p>
+                    </div>
+
                     <div className="rounded-2xl border border-slate-200 bg-white p-4">
                       <p className="text-xs font-semibold uppercase text-slate-400">
                         Total earned
@@ -715,6 +765,96 @@ export default function AdminUsers({
                         {count(details.user.paidWithdrawalCount)}
                       </p>
                     </div>
+                  </section>
+
+                  <section className="rounded-2xl border border-violet-200 bg-white p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold">
+                          Weekly Challenge History
+                        </h4>
+
+                        <p className="mt-1 text-sm text-slate-500">
+                          Every weekly challenge this user has won.
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                        {count(details.user.weeklyChallengeWins)} wins
+                      </span>
+                    </div>
+
+                    {details.weeklyChallenges.length === 0 ? (
+                      <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+                        This user has not won a weekly challenge yet.
+                      </p>
+                    ) : (
+                      <div className="mt-5 overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                              <th className="px-3 py-3">Challenge</th>
+                              <th className="px-3 py-3">Week</th>
+                              <th className="px-3 py-3">Rank</th>
+                              <th className="px-3 py-3">Reward</th>
+                              <th className="px-3 py-3">Status</th>
+                              <th className="px-3 py-3">Paid</th>
+                            </tr>
+                          </thead>
+
+                          <tbody>
+                            {details.weeklyChallenges.map((challenge) => (
+                              <tr
+                                key={challenge.id}
+                                className="border-b border-slate-100 last:border-0"
+                              >
+                                <td className="px-3 py-3">
+                                  <div className="font-semibold text-slate-800">
+                                    {challenge.title}
+                                  </div>
+
+                                  {challenge.description ? (
+                                    <div className="mt-1 max-w-xs text-xs text-slate-400">
+                                      {challenge.description}
+                                    </div>
+                                  ) : null}
+                                </td>
+
+                                <td className="whitespace-nowrap px-3 py-3 text-slate-600">
+                                  {challenge.startsAt
+                                    ? date(challenge.startsAt)
+                                    : "—"}
+                                  {" → "}
+                                  {challenge.expiresAt
+                                    ? date(challenge.expiresAt)
+                                    : "—"}
+                                </td>
+
+                                <td className="px-3 py-3 font-bold text-violet-700">
+                                  #{challenge.rank}
+                                </td>
+
+                                <td className="px-3 py-3 font-semibold">
+                                  {money(challenge.rewardUsd)}
+                                </td>
+
+                                <td className="px-3 py-3">
+                                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                    {challenge.status || "Paid"}
+                                  </span>
+                                </td>
+
+                                <td className="whitespace-nowrap px-3 py-3 text-slate-500">
+                                  {challenge.settledAt
+                                    ? date(challenge.settledAt)
+                                    : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </section>
 
                   <section className="rounded-2xl border border-slate-200 bg-white p-5">

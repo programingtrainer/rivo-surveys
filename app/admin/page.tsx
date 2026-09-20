@@ -10,6 +10,7 @@ import {
   users,
   wallets,
   withdrawals,
+  weeklyChallenges,
 } from "@/lib/schema";
 import { desc, eq, sql } from "drizzle-orm";
 
@@ -137,7 +138,25 @@ export default async function AdminPage() {
             from ${telegramCodeRedemptions}
             where ${telegramCodeRedemptions.userId} = ${users.id}
           ), 0)
+          +
+          coalesce((
+            select sum(wcw.reward_usd)
+            from weekly_challenge_winners wcw
+            where wcw.user_id = ${users.id}
+          ), 0)
         )`,
+
+        weeklyChallengeWins: sql<number>`(
+          select count(*)
+          from weekly_challenge_winners wcw
+          where wcw.user_id = ${users.id}
+        )`,
+
+        weeklyChallengeEarningsUsd: sql<string>`coalesce((
+          select sum(wcw.reward_usd)
+          from weekly_challenge_winners wcw
+          where wcw.user_id = ${users.id}
+        ), '0')`,
 
         successfulReferrals: sql<number>`(
           select count(*)
@@ -173,7 +192,13 @@ export default async function AdminPage() {
 
   const totalSiteSurveyCount = Number(totalSiteSurveys[0]?.count ?? 0);
 
+  const totalWeeklyChallengesRows = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(weeklyChallenges);
 
+  const totalWeeklyChallengeCount = Number(
+    totalWeeklyChallengesRows[0]?.count ?? 0
+  );
 
   const total = Number(stats[0]?.total ?? 0);
   const blocked = Number(stats[0]?.blocked ?? 0);
@@ -192,12 +217,13 @@ export default async function AdminPage() {
           </p>
         </div>
 
-        <section className="motion-stagger mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <section className="motion-stagger mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {[
             ["Total users", total],
             ["Active users", active],
             ["Blocked users", blocked],
             ["Total Surveys", totalSiteSurveyCount.toLocaleString()],
+            ["Weekly Challenges", totalWeeklyChallengeCount.toLocaleString()],
             ["Wallet balance", `$${balance.toFixed(2)}`],
           ].map(([label, value]) => (
             <div
@@ -235,6 +261,23 @@ export default async function AdminPage() {
           </div>
         </section>
 
+
+        <section className="motion-card mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[.16em] text-slate-400">
+                Engagement
+              </p>
+              <h3 className="mt-1 text-lg font-bold">Weekly Challenges</h3>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                Create seven-day competitions, leaderboard prizes, and automatic challenge rewards.
+              </p>
+            </div>
+            <a href="/admin/challenges/weekly" className="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+              Manage weekly challenges <span className="ml-2">→</span>
+            </a>
+          </div>
+        </section>
 
         <section className="motion-card mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">

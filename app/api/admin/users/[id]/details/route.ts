@@ -12,6 +12,8 @@ import {
   users,
   wallets,
   withdrawals,
+  weeklyChallenges,
+  weeklyChallengeWinners,
 } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 
@@ -116,6 +118,12 @@ export async function GET(
             from ${telegramCodeRedemptions}
             where ${telegramCodeRedemptions.userId} = ${users.id}
           ), 0)
+          +
+          coalesce((
+            select sum(${weeklyChallengeWinners.rewardUsd})
+            from ${weeklyChallengeWinners}
+            where ${weeklyChallengeWinners.userId} = ${users.id}
+          ), 0)
         )`,
 
         withdrawalCount: sql<number>`(
@@ -157,6 +165,18 @@ export async function GET(
           where ${referrals.referrerUserId} = ${users.id}
             and lower(${referrals.status}) = 'pending'
         )`,
+
+        weeklyChallengeWins: sql<number>`(
+          select count(*)
+          from ${weeklyChallengeWinners}
+          where ${weeklyChallengeWinners.userId} = ${users.id}
+        )`,
+
+        weeklyChallengeEarningsUsd: sql<string>`coalesce((
+          select sum(${weeklyChallengeWinners.rewardUsd})
+          from ${weeklyChallengeWinners}
+          where ${weeklyChallengeWinners.userId} = ${users.id}
+        ), '0')`,
       })
       .from(users)
       .where(eq(users.id, id))
@@ -185,6 +205,7 @@ export async function GET(
       withdrawalRows,
       surveyStats,
       referralRows,
+      weeklyChallengeRows,
       referralRewardStats,
     ] = await Promise.all([
       db
@@ -325,6 +346,24 @@ export async function GET(
       `),
 
       db.execute(sql`
+        SELECT
+          w.id,
+          w.challenge_id,
+          w.rank,
+          w.reward_usd,
+          w.settled_at,
+          c.title AS challenge_title,
+          c.description AS challenge_description,
+          c.starts_at,
+          c.expires_at
+        FROM weekly_challenge_winners w
+        INNER JOIN weekly_challenges c
+          ON c.id = w.challenge_id
+        WHERE w.user_id = ${id}
+        ORDER BY c.starts_at DESC, w.rank ASC
+      `),
+
+      db.execute(sql`
         SELECT COALESCE(SUM(reward_usd), 0) AS referral_earnings
         FROM referral_rewards
         WHERE user_id = ${id}
@@ -347,11 +386,29 @@ export async function GET(
         referralEarnings: String(
           referralRewardStats.rows[0]?.referral_earnings ?? "0"
         ),
+        weeklyChallengeWins: Number(user.weeklyChallengeWins ?? 0),
+        weeklyChallengeEarningsUsd: String(
+          user.weeklyChallengeEarningsUsd ?? "0"
+        ),
       },
       surveys: surveyRows,
       surveyAttempts: surveyAttemptRows,
       dailyTasks: dailyTaskRows,
       withdrawals: withdrawalRows,
+
+      weeklyChallenges: weeklyChallengeRows.rows.map((row) => ({
+        id: String(row.id),
+        challengeId: String(row.challenge_id),
+        title: String(row.challenge_title),
+        description: String(row.challenge_description ?? ""),
+        rank: Number(row.rank),
+        rewardUsd: String(row.reward_usd ?? "0"),
+        startsAt: row.starts_at,
+        expiresAt: row.expires_at,
+        settledAt: row.settled_at,
+        status: "paid",
+      })),
+
       referrals: referralRows.rows.map((row) => ({
         id: String(row.id),
         referredUserId: String(row.referred_user_id),

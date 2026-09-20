@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { desc, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { cpxTransactions, dailyTaskCompletions, telegramCodeRedemptions, referrals, users, wallets, withdrawals } from "@/lib/schema";
+import { cpxTransactions, dailyTaskCompletions, telegramCodeRedemptions, referrals, users, wallets, withdrawals, weeklyChallengeWinners } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 
 const ADMIN_EMAIL = "gatapro901@gmail.com";
@@ -71,6 +71,18 @@ export async function GET() {
         where ${withdrawals.userId} = ${users.id}
       )`,
 
+      weeklyChallengeWins: sql<number>`(
+        select count(*)
+        from ${weeklyChallengeWinners}
+        where ${weeklyChallengeWinners.userId} = ${users.id}
+      )`,
+
+      weeklyChallengeEarningsUsd: sql<string>`coalesce((
+        select sum(${weeklyChallengeWinners.rewardUsd})
+        from ${weeklyChallengeWinners}
+        where ${weeklyChallengeWinners.userId} = ${users.id}
+      ), '0')`,
+
       totalWithdrawn: sql<string>`coalesce((
         select sum(${withdrawals.netAmount})
         from ${withdrawals}
@@ -104,6 +116,12 @@ export async function GET() {
           select sum(${telegramCodeRedemptions.reward})
           from ${telegramCodeRedemptions}
           where ${telegramCodeRedemptions.userId} = ${users.id}
+        ), 0)
+        +
+        coalesce((
+          select sum(${weeklyChallengeWinners.rewardUsd})
+          from ${weeklyChallengeWinners}
+          where ${weeklyChallengeWinners.userId} = ${users.id}
         ), 0)
       )`,
 
