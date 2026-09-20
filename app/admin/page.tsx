@@ -41,31 +41,6 @@ export default async function AdminPage() {
         where lower(${cpxTransactions.status}) <> 'completed'
           or lower(coalesce(${cpxTransactions.type}, '')) not in ('complete', 'out')
       )`.as("failed_surveys"),
-      totalEarnedUsd: sql<string>`(
-        coalesce(sum(${cpxTransactions.amountUsd}) filter (
-          where lower(${cpxTransactions.status}) = 'completed'
-            and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
-        ), 0)
-        +
-        coalesce((
-          select sum(${dailyTaskCompletions.rewardUsd})
-          from ${dailyTaskCompletions}
-          where ${dailyTaskCompletions.userId} = ${cpxTransactions.userId}
-            and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
-        ), 0)
-        +
-        coalesce((
-          select sum(rr.reward_usd)
-          from referral_rewards rr
-          where rr.user_id = ${cpxTransactions.userId}
-        ), 0)
-        +
-        coalesce((
-          select sum(${telegramCodeRedemptions.reward})
-          from ${telegramCodeRedemptions}
-          where ${telegramCodeRedemptions.userId} = ${cpxTransactions.userId}
-        ), 0)
-      )`.as("total_earned_usd"),
     })
     .from(cpxTransactions)
     .groupBy(cpxTransactions.userId)
