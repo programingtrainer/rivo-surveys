@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PageLayout({
+export default async function PageLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
