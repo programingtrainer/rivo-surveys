@@ -1,0 +1,317 @@
+app/api/challenges/tasks/route.ts:9:import { getCurrentUser } from "@/lib/auth";
+app/api/challenges/tasks/route.ts:12:  const user = await getCurrentUser();
+app/api/challenges/tasks/route.ts:15:    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/challenges/tasks/route.ts:28:      return NextResponse.json({ error: "User not found" }, { status: 404 });
+app/api/challenges/tasks/route.ts:74:    return NextResponse.json({
+app/api/challenges/tasks/route.ts:98:    return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:12:import { getCurrentUser } from "@/lib/auth";
+app/api/challenges/tasks/complete/route.ts:25:  const user = await getCurrentUser();
+app/api/challenges/tasks/complete/route.ts:28:    return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:35:    const body = await request.json();
+app/api/challenges/tasks/complete/route.ts:43:      return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:56:      return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:65:      return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:80:      return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:91:      return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:98:      return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:121:      return NextResponse.json({
+app/api/challenges/tasks/complete/route.ts:145:        return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:164:        return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:184:        return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:201:     * The CPX transaction is the source of truth.
+app/api/challenges/tasks/complete/route.ts:231:          transactionId: cpxTransactions.transactionId,
+app/api/challenges/tasks/complete/route.ts:241:        return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:250:      evidenceId = `cpx:${evidence.transactionId}`;
+app/api/challenges/tasks/complete/route.ts:253:       * Serialize all claims using the same CPX transaction.
+app/api/challenges/tasks/complete/route.ts:255:       * same CPX transaction for different Daily Tasks.
+app/api/challenges/tasks/complete/route.ts:289:        return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:302:      return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:314:     * No Drizzle transaction is used because the current
+app/api/challenges/tasks/complete/route.ts:315:     * neon-http driver does not support db.transaction().
+app/api/challenges/tasks/complete/route.ts:319:     * 1. transaction-level advisory lock
+app/api/challenges/tasks/complete/route.ts:325:     * The advisory lock also prevents the same CPX transaction
+app/api/challenges/tasks/complete/route.ts:336:        INSERT INTO daily_task_completions (
+app/api/challenges/tasks/complete/route.ts:382:        INSERT INTO wallets (
+app/api/challenges/tasks/complete/route.ts:437:        return NextResponse.json({
+app/api/challenges/tasks/complete/route.ts:448:        return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:457:      return NextResponse.json(
+app/api/challenges/tasks/complete/route.ts:478:    return NextResponse.json({
+app/api/challenges/tasks/complete/route.ts:514:    return NextResponse.json(
+app/api/challenges/telegram/redeem/route.ts:5:import { getCurrentUser } from "@/lib/auth";
+app/api/challenges/telegram/redeem/route.ts:9:    const user = await getCurrentUser();
+app/api/challenges/telegram/redeem/route.ts:12:      return NextResponse.json({ error: "You must be logged in." }, { status: 401 });
+app/api/challenges/telegram/redeem/route.ts:15:    const body = await request.json();
+app/api/challenges/telegram/redeem/route.ts:19:      return NextResponse.json({ error: "Please enter a code." }, { status: 400 });
+app/api/challenges/telegram/redeem/route.ts:22:    const result = await db.transaction(async (tx) => {
+app/api/challenges/telegram/redeem/route.ts:81:      return NextResponse.json({ error: result.error }, { status: result.status });
+app/api/challenges/telegram/redeem/route.ts:84:    return NextResponse.json(result);
+app/api/challenges/telegram/redeem/route.ts:87:    return NextResponse.json(
+app/api/challenges/weekly/route.ts:4:import { getCurrentUser } from "@/lib/auth";
+app/api/challenges/weekly/route.ts:9:  const user = await getCurrentUser();
+app/api/challenges/weekly/route.ts:10:  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/challenges/weekly/route.ts:54:  return NextResponse.json({ challenges: results });
+app/api/surveys/route.ts:3:import { getCurrentUser } from "@/lib/auth";
+app/api/surveys/route.ts:20:    const user = await getCurrentUser();
+app/api/surveys/route.ts:23:      return NextResponse.json(
+app/api/surveys/route.ts:32:      return NextResponse.json(
+app/api/surveys/route.ts:70:      return NextResponse.json(
+app/api/surveys/route.ts:81:      return NextResponse.json(
+app/api/surveys/route.ts:103:    return NextResponse.json(
+app/api/surveys/route.ts:119:    return NextResponse.json(
+app/api/surveys/start/route.ts:5:import { getCurrentUser } from "@/lib/auth";
+app/api/surveys/start/route.ts:9:    const user = await getCurrentUser();
+app/api/surveys/start/route.ts:12:      return NextResponse.json(
+app/api/surveys/start/route.ts:18:    const body = await request.json();
+app/api/surveys/start/route.ts:24:      return NextResponse.json(
+app/api/surveys/start/route.ts:35:      return NextResponse.json(
+app/api/surveys/start/route.ts:48:      return NextResponse.json(
+app/api/surveys/start/route.ts:65:    return NextResponse.json({
+app/api/surveys/start/route.ts:73:    return NextResponse.json(
+app/api/withdrawals/route.ts:4:import { getCurrentUser } from "@/lib/auth";
+app/api/withdrawals/route.ts:11:    const user = await getCurrentUser();
+app/api/withdrawals/route.ts:14:      return NextResponse.json(
+app/api/withdrawals/route.ts:20:    const body = await request.json().catch(() => null);
+app/api/withdrawals/route.ts:30:      return NextResponse.json(
+app/api/withdrawals/route.ts:37:      return NextResponse.json(
+app/api/withdrawals/route.ts:46:      return NextResponse.json(
+app/api/withdrawals/route.ts:55:      return NextResponse.json(
+app/api/withdrawals/route.ts:62:      return NextResponse.json(
+app/api/withdrawals/route.ts:96:        UPDATE wallets
+app/api/withdrawals/route.ts:112:      INSERT INTO withdrawals (
+app/api/withdrawals/route.ts:156:        return NextResponse.json(
+app/api/withdrawals/route.ts:174:        return NextResponse.json(
+app/api/withdrawals/route.ts:202:        return NextResponse.json(
+app/api/withdrawals/route.ts:212:      return NextResponse.json(
+app/api/withdrawals/route.ts:222:    return NextResponse.json(
+app/api/withdrawals/route.ts:242:    return NextResponse.json(
+app/api/cpx/postback/route.ts:19:      return NextResponse.json(
+app/api/cpx/postback/route.ts:28:    const transactionId = searchParams.get("trans_id");
+app/api/cpx/postback/route.ts:39:      !transactionId ||
+app/api/cpx/postback/route.ts:44:      return NextResponse.json(
+app/api/cpx/postback/route.ts:50:    const expectedHash = md5(`${transactionId}-${CPX_SECURE_HASH}`);
+app/api/cpx/postback/route.ts:54:        transactionId,
+app/api/cpx/postback/route.ts:58:      return NextResponse.json(
+app/api/cpx/postback/route.ts:68:      return NextResponse.json(
+app/api/cpx/postback/route.ts:83:      return NextResponse.json(
+app/api/cpx/postback/route.ts:116:       * 1. Insert CPX transaction.
+app/api/cpx/postback/route.ts:117:       * 2. Prevent duplicate transaction credit.
+app/api/cpx/postback/route.ts:124:          INSERT INTO cpx_transactions (
+app/api/cpx/postback/route.ts:125:            transaction_id,
+app/api/cpx/postback/route.ts:135:            ${transactionId},
+app/api/cpx/postback/route.ts:148:          ON CONFLICT (transaction_id) DO NOTHING
+app/api/cpx/postback/route.ts:190:          INSERT INTO referral_rewards (
+app/api/cpx/postback/route.ts:235:          INSERT INTO wallets (
+app/api/cpx/postback/route.ts:270:          transaction_id = ${transactionId},
+app/api/cpx/postback/route.ts:304:      return NextResponse.json({
+app/api/cpx/postback/route.ts:308:        transaction_id: transactionId,
+app/api/cpx/postback/route.ts:320:     * The financial transaction is reversed only once.
+app/api/cpx/postback/route.ts:327:          UPDATE cpx_transactions
+app/api/cpx/postback/route.ts:331:          WHERE transaction_id = ${transactionId}
+app/api/cpx/postback/route.ts:335:        UPDATE wallets
+app/api/cpx/postback/route.ts:348:       * If this transaction belongs to a survey attempt,
+app/api/cpx/postback/route.ts:356:          transaction_id = ${transactionId},
+app/api/cpx/postback/route.ts:369:            transaction_id = ${transactionId}
+app/api/cpx/postback/route.ts:379:              WHEN transaction_id = ${transactionId} THEN 0
+app/api/cpx/postback/route.ts:390:      return NextResponse.json({
+app/api/cpx/postback/route.ts:394:        transaction_id: transactionId,
+app/api/cpx/postback/route.ts:410:        transaction_id = ${transactionId},
+app/api/cpx/postback/route.ts:432:    return NextResponse.json({
+app/api/cpx/postback/route.ts:436:      transaction_id: transactionId,
+app/api/cpx/postback/route.ts:443:    return NextResponse.json(
+app/api/admin/telegram-codes/route.ts:5:import { isAdmin } from "@/lib/auth";
+app/api/admin/telegram-codes/route.ts:9:    if (!(await isAdmin())) {
+app/api/admin/telegram-codes/route.ts:10:      return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
+app/api/admin/telegram-codes/route.ts:18:    return NextResponse.json({ codes });
+app/api/admin/telegram-codes/route.ts:22:    return NextResponse.json(
+app/api/admin/telegram-codes/route.ts:31:    if (!(await isAdmin())) {
+app/api/admin/telegram-codes/route.ts:32:      return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
+app/api/admin/telegram-codes/route.ts:35:    const body = await request.json();
+app/api/admin/telegram-codes/route.ts:52:      return NextResponse.json(
+app/api/admin/telegram-codes/route.ts:69:      return NextResponse.json(
+app/api/admin/telegram-codes/route.ts:85:    return NextResponse.json(
+app/api/admin/telegram-codes/route.ts:97:    return NextResponse.json({ error: message }, { status: 400 });
+app/api/admin/telegram-codes/[id]/route.ts:5:import { isAdmin } from "@/lib/auth";
+app/api/admin/telegram-codes/[id]/route.ts:16:    if (!(await isAdmin())) {
+app/api/admin/telegram-codes/[id]/route.ts:17:      return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
+app/api/admin/telegram-codes/[id]/route.ts:21:    const body = await request.json();
+app/api/admin/telegram-codes/[id]/route.ts:38:      return NextResponse.json(
+app/api/admin/telegram-codes/[id]/route.ts:55:      return NextResponse.json(
+app/api/admin/telegram-codes/[id]/route.ts:74:      return NextResponse.json(
+app/api/admin/telegram-codes/[id]/route.ts:80:    return NextResponse.json({ code: updated[0] });
+app/api/admin/telegram-codes/[id]/route.ts:89:    return NextResponse.json({ error: message }, { status: 400 });
+app/api/admin/telegram-codes/[id]/route.ts:98:    if (!(await isAdmin())) {
+app/api/admin/telegram-codes/[id]/route.ts:99:      return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
+app/api/admin/telegram-codes/[id]/route.ts:105:      return NextResponse.json(
+app/api/admin/telegram-codes/[id]/route.ts:117:      return NextResponse.json(
+app/api/admin/telegram-codes/[id]/route.ts:123:    return NextResponse.json({ success: true });
+app/api/admin/telegram-codes/[id]/route.ts:127:    return NextResponse.json(
+app/api/admin/operations/route.ts:5:import { isAdmin } from "@/lib/auth";
+app/api/admin/operations/route.ts:13:  if (!(await isAdmin())) {
+app/api/admin/operations/route.ts:14:    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+app/api/admin/operations/route.ts:54:    return NextResponse.json({
+app/api/admin/operations/route.ts:70:    return NextResponse.json(
+app/api/admin/operations/route.ts:78:  if (!(await isAdmin())) {
+app/api/admin/operations/route.ts:79:    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+app/api/admin/operations/route.ts:83:    const body = await request.json();
+app/api/admin/operations/route.ts:93:      return NextResponse.json(
+app/api/admin/operations/route.ts:100:      return NextResponse.json(
+app/api/admin/operations/route.ts:107:      return NextResponse.json(
+app/api/admin/operations/route.ts:121:      const result = await db.transaction(async (tx) => {
+app/api/admin/operations/route.ts:157:        return NextResponse.json(
+app/api/admin/operations/route.ts:166:      return NextResponse.json({
+app/api/admin/operations/route.ts:203:      return NextResponse.json(
+app/api/admin/operations/route.ts:215:      const refunded = await db.transaction(async (tx) => {
+app/api/admin/operations/route.ts:244:      return NextResponse.json(
+app/api/admin/operations/route.ts:302:        return NextResponse.json({
+app/api/admin/operations/route.ts:311:      return NextResponse.json({
+app/api/admin/operations/route.ts:331:        const failed = await db.transaction(async (tx) => {
+app/api/admin/operations/route.ts:366:        return NextResponse.json(
+app/api/admin/operations/route.ts:378:      return NextResponse.json(
+app/api/admin/operations/route.ts:392:    return NextResponse.json(
+app/api/admin/users/route.ts:6:import { isAdmin } from "@/lib/auth";
+app/api/admin/users/route.ts:11:  if (!(await isAdmin())) {
+app/api/admin/users/route.ts:12:    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+app/api/admin/users/route.ts:139:  return NextResponse.json({ users: result });
+app/api/admin/users/[id]/route.ts:1:import { NextResponse } from "next/server"; import { eq } from "drizzle-orm"; import { db } from "@/lib/db"; import { sessions, users } from "@/lib/schema"; import { isAdmin } from "@/lib/auth";
+app/api/admin/users/[id]/route.ts:3:export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){if(!(await isAdmin()))return NextResponse.json({error:"Forbidden."},{status:403}); const {id}=await params; try{const body=await request.json(); const action=body?.action; if(action!=="block"&&action!=="unblock")return NextResponse.json({error:"Invalid action."},{status:400}); const rows=await db.select({id:users.id,email:users.email}).from(users).where(eq(users.id,id)).limit(1); const user=rows[0]; if(!user)return NextResponse.json({error:"User not found."},{status:404}); if(user.email.toLowerCase()===ADMIN_EMAIL)return NextResponse.json({error:"The administrator account cannot be modified here."},{status:403}); const isBlocked=action==="block"; await db.transaction(async(tx)=>{await tx.update(users).set({isBlocked,updatedAt:new Date()}).where(eq(users.id,id)); if(isBlocked)await tx.delete(sessions).where(eq(sessions.userId,id));}); return NextResponse.json({success:true,user:{id,isBlocked}});}catch(error){console.error(error);return NextResponse.json({error:"Unable to update account."},{status:500});}}
+app/api/admin/users/[id]/route.ts:4:export async function DELETE(_request:Request,{params}:{params:Promise<{id:string}>}){if(!(await isAdmin()))return NextResponse.json({error:"Forbidden."},{status:403}); const {id}=await params; try{const rows=await db.select({id:users.id,email:users.email}).from(users).where(eq(users.id,id)).limit(1); const user=rows[0]; if(!user)return NextResponse.json({error:"User not found."},{status:404}); if(user.email.toLowerCase()===ADMIN_EMAIL)return NextResponse.json({error:"The administrator account cannot be deleted."},{status:403}); await db.delete(users).where(eq(users.id,id)); return NextResponse.json({success:true});}catch(error){console.error(error);return NextResponse.json({error:"Unable to delete account."},{status:500});}}
+app/api/admin/users/[id]/details/route.ts:18:import { isAdmin } from "@/lib/auth";
+app/api/admin/users/[id]/details/route.ts:26:  if (!(await isAdmin())) {
+app/api/admin/users/[id]/details/route.ts:27:    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+app/api/admin/users/[id]/details/route.ts:188:      return NextResponse.json(
+app/api/admin/users/[id]/details/route.ts:195:      return NextResponse.json(
+app/api/admin/users/[id]/details/route.ts:214:          transactionId: cpxTransactions.transactionId,
+app/api/admin/users/[id]/details/route.ts:233:          transactionId: surveyAttempts.transactionId,
+app/api/admin/users/[id]/details/route.ts:375:    return NextResponse.json({
+app/api/admin/users/[id]/details/route.ts:427:    return NextResponse.json(
+app/api/admin/tasks/route.ts:5:import { isAdmin } from "@/lib/auth";
+app/api/admin/tasks/route.ts:21:  if (!(await isAdmin())) {
+app/api/admin/tasks/route.ts:22:    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/tasks/route.ts:30:  return NextResponse.json({ tasks });
+app/api/admin/tasks/route.ts:34:  if (!(await isAdmin())) {
+app/api/admin/tasks/route.ts:35:    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/tasks/route.ts:39:    const body = await request.json();
+app/api/admin/tasks/route.ts:56:      return NextResponse.json({ error: "Invalid task title" }, { status: 400 });
+app/api/admin/tasks/route.ts:60:      return NextResponse.json({ error: "Invalid task description" }, { status: 400 });
+app/api/admin/tasks/route.ts:64:      return NextResponse.json({ error: "Invalid reward" }, { status: 400 });
+app/api/admin/tasks/route.ts:68:      return NextResponse.json({ error: "Invalid audience" }, { status: 400 });
+app/api/admin/tasks/route.ts:72:      return NextResponse.json({ error: "Invalid verification type" }, { status: 400 });
+app/api/admin/tasks/route.ts:76:      return NextResponse.json({ error: "Invalid survey verification value" }, { status: 400 });
+app/api/admin/tasks/route.ts:82:        return NextResponse.json({ error: "Invalid referral verification value" }, { status: 400 });
+app/api/admin/tasks/route.ts:87:      return NextResponse.json({ error: "Invalid task schedule" }, { status: 400 });
+app/api/admin/tasks/route.ts:95:        return NextResponse.json({ error: "Invalid action URL" }, { status: 400 });
+app/api/admin/tasks/route.ts:99:        return NextResponse.json({ error: "Invalid action URL" }, { status: 400 });
+app/api/admin/tasks/route.ts:118:    return NextResponse.json({ success: true, task });
+app/api/admin/tasks/route.ts:120:    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
+app/api/admin/tasks/[id]/route.ts:5:import { isAdmin } from "@/lib/auth";
+app/api/admin/tasks/[id]/route.ts:20:  if (!(await isAdmin())) {
+app/api/admin/tasks/[id]/route.ts:21:    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/tasks/[id]/route.ts:27:    const body = await request.json();
+app/api/admin/tasks/[id]/route.ts:47:      return NextResponse.json({ error: "Invalid task data" }, { status: 400 });
+app/api/admin/tasks/[id]/route.ts:55:        return NextResponse.json({ error: "Invalid action URL" }, { status: 400 });
+app/api/admin/tasks/[id]/route.ts:59:        return NextResponse.json({ error: "Invalid action URL" }, { status: 400 });
+app/api/admin/tasks/[id]/route.ts:81:      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+app/api/admin/tasks/[id]/route.ts:84:    return NextResponse.json({ success: true, task });
+app/api/admin/tasks/[id]/route.ts:86:    return NextResponse.json({ error: "Failed to update task" }, { status: 500 });
+app/api/admin/tasks/[id]/route.ts:94:  if (!(await isAdmin())) {
+app/api/admin/tasks/[id]/route.ts:95:    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/tasks/[id]/route.ts:106:    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+app/api/admin/tasks/[id]/route.ts:109:  return NextResponse.json({ success: true });
+app/api/admin/tasks/completions/route.ts:10:import { isAdmin } from "@/lib/auth";
+app/api/admin/tasks/completions/route.ts:13:  if (!(await isAdmin())) {
+app/api/admin/tasks/completions/route.ts:14:    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/tasks/completions/route.ts:36:  return NextResponse.json({ completions });
+app/api/admin/tasks/completions/route.ts:40:  if (!(await isAdmin())) {
+app/api/admin/tasks/completions/route.ts:41:    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/tasks/completions/route.ts:45:    const body = await request.json();
+app/api/admin/tasks/completions/route.ts:50:      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+app/api/admin/tasks/completions/route.ts:60:      return NextResponse.json({ error: "Completion not found" }, { status: 404 });
+app/api/admin/tasks/completions/route.ts:64:      return NextResponse.json({ error: "Completion already processed" }, { status: 400 });
+app/api/admin/tasks/completions/route.ts:75:      return NextResponse.json({
+app/api/admin/tasks/completions/route.ts:96:      return NextResponse.json({ error: "Completion was already processed" }, { status: 409 });
+app/api/admin/tasks/completions/route.ts:112:    return NextResponse.json({
+app/api/admin/tasks/completions/route.ts:120:    return NextResponse.json(
+app/api/admin/challenges/weekly/[id]/route.ts:4:import { isAdmin } from "@/lib/auth";
+app/api/admin/challenges/weekly/[id]/route.ts:8:  if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/challenges/weekly/[id]/route.ts:11:  if (!challenge) return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
+app/api/admin/challenges/weekly/[id]/route.ts:12:  if (challenge.status === "settled") return NextResponse.json({ error: "Settled challenges cannot be deleted." }, { status: 400 });
+app/api/admin/challenges/weekly/[id]/route.ts:14:  return NextResponse.json({ success: true });
+app/api/admin/challenges/weekly/[id]/route.ts:18:  if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/challenges/weekly/[id]/route.ts:22:  if (!challenge) return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
+app/api/admin/challenges/weekly/[id]/route.ts:23:  return NextResponse.json({ challenge, prizes });
+app/api/admin/challenges/weekly/route.ts:4:import { isAdmin } from "@/lib/auth";
+app/api/admin/challenges/weekly/route.ts:19:  if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/challenges/weekly/route.ts:23:  return NextResponse.json({ challenges, prizes });
+app/api/admin/challenges/weekly/route.ts:27:  const admin = await isAdmin();
+app/api/admin/challenges/weekly/route.ts:28:  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/challenges/weekly/route.ts:29:  const user = await (await import("@/lib/auth")).getCurrentUser();
+app/api/admin/challenges/weekly/route.ts:30:  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/admin/challenges/weekly/route.ts:33:    const body = await request.json();
+app/api/admin/challenges/weekly/route.ts:44:      return NextResponse.json({ error: "Invalid challenge data" }, { status: 400 });
+app/api/admin/challenges/weekly/route.ts:48:      return NextResponse.json({ error: "Every weekly challenge must last exactly 7 days." }, { status: 400 });
+app/api/admin/challenges/weekly/route.ts:51:      return NextResponse.json({ error: "Challenge must be scheduled for a future 7-day period." }, { status: 400 });
+app/api/admin/challenges/weekly/route.ts:57:      return NextResponse.json({ error: "A positive target is required." }, { status: 400 });
+app/api/admin/challenges/weekly/route.ts:63:      return NextResponse.json({ error: "A valid target reward is required." }, { status: 400 });
+app/api/admin/challenges/weekly/route.ts:66:      return NextResponse.json({ error: "At least one leaderboard prize is required." }, { status: 400 });
+app/api/admin/challenges/weekly/route.ts:74:      return NextResponse.json({ error: "Invalid leaderboard prize." }, { status: 400 });
+app/api/admin/challenges/weekly/route.ts:77:      return NextResponse.json({ error: "Prize ranks must be unique." }, { status: 400 });
+app/api/admin/challenges/weekly/route.ts:100:    return NextResponse.json({ success: true, challenge });
+app/api/admin/challenges/weekly/route.ts:103:    return NextResponse.json({ error: "Failed to create weekly challenge" }, { status: 500 });
+app/api/admin/challenges/weekly/route.ts:108:  return NextResponse.json({ types: WEEKLY_CHALLENGE_TYPES });
+app/api/account/delete/route.ts:6:import { getCurrentUser } from "@/lib/auth";
+app/api/account/delete/route.ts:12:    const user = await getCurrentUser();
+app/api/account/delete/route.ts:15:      return NextResponse.json(
+app/api/account/delete/route.ts:22:      return NextResponse.json(
+app/api/account/delete/route.ts:33:    const response = NextResponse.json({
+app/api/account/delete/route.ts:51:    return NextResponse.json(
+app/api/account/change-password/route.ts:8:import { getCurrentUser } from "@/lib/auth";
+app/api/account/change-password/route.ts:12:    const user = await getCurrentUser();
+app/api/account/change-password/route.ts:15:      return NextResponse.json(
+app/api/account/change-password/route.ts:21:    const body = await request.json();
+app/api/account/change-password/route.ts:32:      return NextResponse.json(
+app/api/account/change-password/route.ts:39:      return NextResponse.json(
+app/api/account/change-password/route.ts:46:      return NextResponse.json(
+app/api/account/change-password/route.ts:62:    return NextResponse.json({
+app/api/account/change-password/route.ts:69:    return NextResponse.json(
+app/api/referrals/route.ts:4:import { getCurrentUser } from "@/lib/auth";
+app/api/referrals/route.ts:19:    const user = await getCurrentUser();
+app/api/referrals/route.ts:22:      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+app/api/referrals/route.ts:32:      return NextResponse.json({ error: "User not found" }, { status: 404 });
+app/api/referrals/route.ts:70:    return NextResponse.json({
+app/api/referrals/route.ts:82:    return NextResponse.json({ error: "Unable to load referral information." }, { status: 500 });
+app/api/auth/me/route.ts:2:import { getCurrentUser } from "@/lib/auth";
+app/api/auth/me/route.ts:7:    const user = await getCurrentUser();
+app/api/auth/me/route.ts:10:      return NextResponse.json({ user: null }, { status: 401 });
+app/api/auth/me/route.ts:15:    return NextResponse.json({
+app/api/auth/me/route.ts:22:        isAdmin: admin,
+app/api/auth/me/route.ts:27:    return NextResponse.json(
+app/api/auth/logout/route.ts:23:    return NextResponse.json({ success: true });
+app/api/auth/logout/route.ts:30:    return NextResponse.json({ success: true });
+app/api/auth/google/callback/route.ts:252:          await db.transaction(
+app/api/auth/google/start/route.ts:11:    return NextResponse.json(
+app/api/auth/register/route.ts:84:    const body = await request.json();
+app/api/auth/register/route.ts:112:      return NextResponse.json(
+app/api/auth/register/route.ts:119:      return NextResponse.json(
+app/api/auth/register/route.ts:126:      return NextResponse.json(
+app/api/auth/register/route.ts:136:      return NextResponse.json(
+app/api/auth/register/route.ts:146:      return NextResponse.json(
+app/api/auth/register/route.ts:162:      return NextResponse.json(
+app/api/auth/register/route.ts:208:    await db.transaction(async (tx) => {
+app/api/auth/register/route.ts:253:    return NextResponse.json(
+app/api/auth/register/route.ts:266:    return NextResponse.json(
+app/api/auth/login/route.ts:4:export async function POST(request: Request) { try { const body=await request.json(); const email=typeof body.email==="string"?body.email.trim().toLowerCase():""; const password=typeof body.password==="string"?body.password:""; const turnstileToken=typeof body.turnstileToken==="string"?body.turnstileToken:""; if(!email||!password||!turnstileToken)return NextResponse.json({error:"Please complete all required fields."},{status:400}); if(!(await verifyTurnstile(turnstileToken)))return NextResponse.json({error:"Security verification failed."},{status:400}); const result=await db.select().from(users).where(eq(users.email,email)).limit(1); const user=result[0]; if(!user||!user.passwordHash)return NextResponse.json({error:"Invalid email or password."},{status:401}); if(!(await bcrypt.compare(password,user.passwordHash)))return NextResponse.json({error:"Invalid email or password."},{status:401}); if(user.isBlocked)return NextResponse.json({error:"تم حظر حسابك لمخالفة القوانين."},{status:403}); const sessionToken=crypto.randomBytes(32).toString("hex"); const tokenHash=crypto.createHash("sha256").update(sessionToken).digest("hex"); const expiresAt=new Date(Date.now()+7*24*60*60*1000); await db.insert(sessions).values({userId:user.id,tokenHash,expiresAt}); (await cookies()).set("rivo_session",sessionToken,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:30*24*60*60,expires:new Date(Date.now()+30*24*60*60*1000)}); return NextResponse.json({success:true,user:{id:user.id,email:user.email,name:user.name}}); } catch(error){ console.error("Login error:",error); return NextResponse.json({error:"Something went wrong. Please try again."},{status:500}); } }
+app/api/telegram/webhook/route.ts:45:    update = await request.json();
+app/api/telegram/webhook/route.ts:66:      return NextResponse.json({ ok: true });
+app/api/telegram/webhook/route.ts:74:      return NextResponse.json({ ok: true });
+app/api/telegram/webhook/route.ts:85:      return NextResponse.json({ ok: true });
+app/api/telegram/webhook/route.ts:114:      return NextResponse.json({ ok: true });
+app/api/telegram/webhook/route.ts:141:      return NextResponse.json({ ok: true });
+app/api/telegram/webhook/route.ts:167:      return NextResponse.json({ ok: true });
+app/api/telegram/webhook/route.ts:192:      return NextResponse.json({ ok: true });
+app/api/telegram/webhook/route.ts:240:    return NextResponse.json({ ok: true });
+app/api/telegram/webhook/route.ts:261:    return NextResponse.json({ ok: true });
+app/api/telegram/link/route.ts:3:import { getCurrentUser } from "@/lib/auth";
+app/api/telegram/link/route.ts:23:    const user = await getCurrentUser();
+app/api/telegram/link/route.ts:26:      return NextResponse.json(
+app/api/telegram/link/route.ts:47:    return NextResponse.json({
+app/api/telegram/link/route.ts:55:    return NextResponse.json(
