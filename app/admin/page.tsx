@@ -21,7 +21,7 @@ import AppHeader from "../AppHeader";
 
 
 export default async function AdminPage() {
-  if (!(await isAdmin())) redirect("/");
+  if (!(await isAdmin())) redirect("/dashboard");
 
   const nonAdmin = sql`${users.email} <> ${ADMIN_EMAIL}`;
 

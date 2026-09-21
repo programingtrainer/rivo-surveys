@@ -7,7 +7,7 @@ export default async function OperationsPage() {
   const admin = await isAdmin();
 
   if (!admin) {
-    redirect("/");
+    redirect("/dashboard");
   }
 
   const user = await getCurrentUser();

@@ -46,40 +46,16 @@ async function faucetPayRequest(
   httpStatus: number;
   payload: FaucetPayResponse;
 }> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15_000);
-
-  let response: Response;
-
-  try {
-    response = await fetch(`${FAUCETPAY_API}${endpoint}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${getApiKey()}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(body),
-      cache: "no-store",
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new FaucetPayError(
-        "FaucetPay request timed out.",
-        504,
-        false
-      );
-    }
-
-    throw new FaucetPayError(
-      "Unable to reach FaucetPay.",
-      503,
-      false
-    );
-  } finally {
-    clearTimeout(timeout);
-  }
+  const response = await fetch(`${FAUCETPAY_API}${endpoint}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getApiKey()}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
 
   let payload: FaucetPayResponse;
 
@@ -100,22 +76,19 @@ async function faucetPayRequest(
 }
 
 export function usdtToSmallestUnit(amount: string | number) {
-  const raw = String(amount).trim();
+  const value = Number(amount);
 
-  if (!/^\d+(?:\.\d{1,6})?$/.test(raw)) {
+  if (!Number.isFinite(value) || value <= 0) {
     throw new Error("Invalid USDT amount.");
   }
 
-  const [whole, fraction = ""] = raw.split(".");
-  const paddedFraction = fraction.padEnd(USDT_DECIMALS, "0");
+  const units = Math.round(value * 10 ** USDT_DECIMALS);
 
-  const units = BigInt(whole) * 1_000_000n + BigInt(paddedFraction);
-
-  if (units <= 0n || units > BigInt(Number.MAX_SAFE_INTEGER)) {
+  if (!Number.isSafeInteger(units) || units <= 0) {
     throw new Error("USDT amount is out of range.");
   }
 
-  return Number(units);
+  return units;
 }
 
 export async function checkFaucetPayAddress(address: string) {

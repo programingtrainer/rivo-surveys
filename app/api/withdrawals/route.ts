@@ -19,21 +19,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => null);
 
-    const rawAmount =
-      typeof body?.amount === "number"
-        ? String(body.amount)
-        : typeof body?.amount === "string"
-          ? body.amount.trim()
-          : "";
-
-    if (!/^\d+(?:\.\d{1,2})?$/.test(rawAmount)) {
-      return NextResponse.json(
-        { error: "Invalid withdrawal amount" },
-        { status: 400 }
-      );
-    }
-
-    const amount = Number(rawAmount);
+    const amount = Number(body?.amount);
 
     const payoutAddress =
       typeof body?.payoutAddress === "string"

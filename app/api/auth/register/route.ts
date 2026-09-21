@@ -241,11 +241,12 @@ export async function POST(request: Request) {
       sessionToken,
       {
         httpOnly: true,
-        secure: true,
+        secure:
+          process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
         maxAge:
-          7 * 24 * 60 * 60,
+          30 * 24 * 60 * 60,
       }
     );
 

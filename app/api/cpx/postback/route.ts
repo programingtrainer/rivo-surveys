@@ -47,53 +47,9 @@ export async function GET(request: Request) {
       );
     }
 
-    /*
-     * Bound all externally supplied identifiers before they reach
-     * database queries, logs, or financial operations.
-     */
-    if (
-      transactionId.length > 128 ||
-      userId.length > 128 ||
-      (offerId !== null && offerId.length > 128) ||
-      (type !== null && type.length > 32) ||
-      (ipClick !== null && ipClick.length > 64)
-    ) {
-      return NextResponse.json(
-        { error: "Invalid parameter length" },
-        { status: 400 }
-      );
-    }
-
-    /*
-     * Only CPX's documented financial states are allowed to reach
-     * the wallet-changing logic.
-     */
-    if (status !== "1" && status !== "2") {
-      return NextResponse.json(
-        { error: "Unsupported status" },
-        { status: 400 }
-      );
-    }
-
-    /*
-     * CPX sends an MD5 hash. Validate the exact format first,
-     * then compare the decoded bytes using a timing-safe comparison.
-     */
     const expectedHash = md5(`${transactionId}-${CPX_SECURE_HASH}`);
-    const normalizedReceivedHash = receivedHash.trim().toLowerCase();
 
-    let hashValid = false;
-
-    if (/^[a-f0-9]{32}$/.test(normalizedReceivedHash)) {
-      const expectedBuffer = Buffer.from(expectedHash, "hex");
-      const receivedBuffer = Buffer.from(normalizedReceivedHash, "hex");
-
-      hashValid =
-        expectedBuffer.length === receivedBuffer.length &&
-        crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
-    }
-
-    if (!hashValid) {
+    if (receivedHash.toLowerCase() !== expectedHash.toLowerCase()) {
       console.error("Invalid CPX secure hash", {
         transactionId,
         userId,
@@ -105,56 +61,14 @@ export async function GET(request: Request) {
       );
     }
 
-    /*
-     * Keep monetary input strict. Number("Infinity"), scientific
-     * notation, and malformed decimal strings must never reach
-     * the wallet calculation.
-     */
-    if (!/^\d+(?:\.\d{1,2})?$/.test(amountLocalRaw.trim())) {
-      return NextResponse.json(
-        { error: "Invalid amount" },
-        { status: 400 }
-      );
-    }
-
     const amountLocal = Number(amountLocalRaw);
+    const amountUsd = amountUsdRaw ? Number(amountUsdRaw) : null;
 
-    if (
-      !Number.isSafeInteger(Math.round(amountLocal * 100)) ||
-      !Number.isFinite(amountLocal) ||
-      amountLocal <= 0
-    ) {
+    if (!Number.isFinite(amountLocal) || amountLocal <= 0) {
       return NextResponse.json(
         { error: "Invalid amount" },
         { status: 400 }
       );
-    }
-
-    let amountUsd: number | null = null;
-
-    if (amountUsdRaw !== null) {
-      const normalizedAmountUsd = amountUsdRaw.trim();
-
-      if (
-        !/^\d+(?:\.\d{1,4})?$/.test(normalizedAmountUsd)
-      ) {
-        return NextResponse.json(
-          { error: "Invalid USD amount" },
-          { status: 400 }
-        );
-      }
-
-      amountUsd = Number(normalizedAmountUsd);
-
-      if (
-        !Number.isFinite(amountUsd) ||
-        amountUsd <= 0
-      ) {
-        return NextResponse.json(
-          { error: "Invalid USD amount" },
-          { status: 400 }
-        );
-      }
     }
 
     const [user] = await db
@@ -420,18 +334,10 @@ export async function GET(request: Request) {
         )
         UPDATE wallets
         SET
-          /*
-           * Do NOT clamp the balance to zero.
-           *
-           * If the user already spent or withdrew the original
-           * CPX reward, the reversal must create a negative balance
-           * instead of consuming unrelated legitimate earnings.
-           *
-           * Future earnings will naturally offset this debt because
-           * all withdrawals already require sufficient wallet balance.
-           */
-          balance = wallets.balance -
-            (reversed.amount_local::numeric / 1000),
+          balance = GREATEST(
+            0,
+            wallets.balance - (reversed.amount_local::numeric / 1000)
+          ),
           updated_at = NOW()
         FROM reversed
         WHERE wallets.user_id = reversed.user_id

@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
   cookieStore.set("google_oauth_state", state, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 10 * 60,
