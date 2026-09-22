@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { desc, eq, sql } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db, transactionDb } from "@/lib/db";
 import { users, withdrawals, wallets } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 import {
@@ -118,7 +118,7 @@ export async function PATCH(request: Request) {
      * originally deducted from the user's wallet.
      */
     if (action === "reject") {
-      const result = await db.transaction(async (tx) => {
+      const result = await transactionDb.transaction(async (tx) => {
         const updated = await tx
           .update(withdrawals)
           .set({
@@ -212,7 +212,7 @@ export async function PATCH(request: Request) {
     const withdrawal = claimed[0];
 
     if (withdrawal.currency !== "USDT") {
-      const refunded = await db.transaction(async (tx) => {
+      const refunded = await transactionDb.transaction(async (tx) => {
         const updated = await tx
           .update(withdrawals)
           .set({
@@ -328,7 +328,7 @@ export async function PATCH(request: Request) {
        * idempotency key is derived from the withdrawal ID.
        */
       if (faucetPayError?.definitive) {
-        const failed = await db.transaction(async (tx) => {
+        const failed = await transactionDb.transaction(async (tx) => {
           const updated = await tx
             .update(withdrawals)
             .set({
