@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { and, eq, gt, lt, sql } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { transactionDb } from "@/lib/db";
 import { telegramCodes, telegramCodeRedemptions, wallets } from "@/lib/schema";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please enter a code." }, { status: 400 });
     }
 
-    const result = await db.transaction(async (tx) => {
+    const result = await transactionDb.transaction(async (tx) => {
       const now = new Date();
       const [telegramCode] = await tx
         .select()
