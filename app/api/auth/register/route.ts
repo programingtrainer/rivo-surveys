@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { db, transactionDb } from "@/lib/db";
 import {
   users,
   sessions,
@@ -205,7 +205,7 @@ export async function POST(request: Request) {
     const userId = crypto.randomUUID();
     const newReferralCode = generateReferralCode();
 
-    await db.transaction(async (tx) => {
+    await transactionDb.transaction(async (tx) => {
       await tx.insert(users).values({
         id: userId,
         email,
