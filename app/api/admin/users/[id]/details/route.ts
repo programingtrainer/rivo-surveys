@@ -222,6 +222,7 @@ export async function GET(
           updatedAt: cpxTransactions.updatedAt,
         })
         .from(cpxTransactions)
+        .where(eq(cpxTransactions.userId, id))
         .orderBy(asc(cpxTransactions.createdAt)),
 
       db
