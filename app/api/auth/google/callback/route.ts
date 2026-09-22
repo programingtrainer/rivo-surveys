@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import { OAuth2Client } from "google-auth-library";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { db, transactionDb } from "@/lib/db";
 import {
   users,
   sessions,
@@ -249,8 +249,7 @@ export async function GET(request: Request) {
             .toUpperCase()}`;
 
         const created =
-          await db.transaction(
-            async (tx) => {
+          await transactionDb.transaction(async (tx) => {
               const inserted =
                 await tx
                   .insert(users)
