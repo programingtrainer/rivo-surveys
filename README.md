@@ -49,6 +49,7 @@ npm run build
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `FAUCETPAY_API_KEY`
+- `TELEGRAM_WEBHOOK_SECRET` (at least 32 URL-safe characters; must match the Telegram webhook `secret_token`)
 - `ADMIN_EMAIL`
 - `NEXT_PUBLIC_SITE_URL`
 
@@ -72,6 +73,8 @@ Normal external-action tasks are instant-claim rewards and do not require admini
 ## Security notes
 
 - Sessions are stored as SHA-256 token hashes in the database and use an HTTP-only cookie.
+- Passwords use bcrypt, new passwords are limited to bcrypt's 72-byte input limit, and password changes revoke other active sessions.
+- Telegram webhook requests are accepted only when Telegram's `X-Telegram-Bot-Api-Secret-Token` header matches `TELEGRAM_WEBHOOK_SECRET`; configure the same value as the webhook `secret_token`.
 - CPX postbacks are verified with the configured secure hash and transaction IDs are unique.
 - Financial/task reward mutations use database transactions where multiple writes must succeed together.
 - Referral/debug diagnostic endpoints are not exposed in the production project.

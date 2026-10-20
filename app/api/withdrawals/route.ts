@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db, transactionDb } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { WITHDRAWAL } from "@/lib/config";
 
@@ -76,70 +76,78 @@ export async function POST(request: Request) {
      * The daily limit counts withdrawal requests created today
      * that have not been cancelled or failed.
      */
-    const result = await db.execute(sql`
-      WITH daily_total AS (
-        SELECT COALESCE(SUM(amount), 0) AS total
-        FROM withdrawals
-        WHERE user_id = ${user.id}
-          AND status NOT IN ('failed', 'canceled')
-          AND (created_at AT TIME ZONE 'Asia/Riyadh')::date =
-              (NOW() AT TIME ZONE 'Asia/Riyadh')::date
-      ),
-      existing_pending AS (
-        SELECT id
-        FROM withdrawals
-        WHERE user_id = ${user.id}
-          AND status IN ('pending', 'processing')
-        LIMIT 1
-      ),
-      deducted AS (
-        UPDATE wallets
-        SET
-          balance = balance - ${amountFixed}::numeric,
-          updated_at = NOW()
-        WHERE user_id = ${user.id}
-          AND balance >= ${amountFixed}::numeric
-          AND NOT EXISTS (
-            SELECT 1
-            FROM existing_pending
-          )
-          AND (
-            SELECT total
-            FROM daily_total
-          ) + ${amountFixed}::numeric <= ${MAX_DAILY_WITHDRAWAL}::numeric
-        RETURNING user_id
-      )
-      INSERT INTO withdrawals (
-        user_id,
-        amount,
-        fee,
-        net_amount,
-        currency,
-        payout_address,
-        status,
-        provider
-      )
-      SELECT
-        user_id,
-        ${amountFixed}::numeric,
-        ${feeFixed}::numeric,
-        ${netFixed}::numeric,
-        ${CURRENCY},
-        ${payoutAddress},
-        'pending',
-        'faucetpay'
-      FROM deducted
-      RETURNING
-        id,
-        amount,
-        fee,
-        net_amount,
-        currency,
-        payout_address,
-        status,
-        provider,
-        created_at
-    `);
+    const result = await transactionDb.transaction(async (tx) => {
+      await tx.execute(sql`
+        SELECT pg_advisory_xact_lock(
+          hashtextextended('withdrawal:' || ${user.id}, 0)
+        )
+      `);
+
+      return tx.execute(sql`
+        WITH daily_total AS (
+          SELECT COALESCE(SUM(amount), 0) AS total
+          FROM withdrawals
+          WHERE user_id = ${user.id}
+            AND status NOT IN ('failed', 'canceled')
+            AND (created_at AT TIME ZONE 'Asia/Riyadh')::date =
+                (NOW() AT TIME ZONE 'Asia/Riyadh')::date
+        ),
+        existing_pending AS (
+          SELECT id
+          FROM withdrawals
+          WHERE user_id = ${user.id}
+            AND status IN ('pending', 'processing')
+          LIMIT 1
+        ),
+        deducted AS (
+          UPDATE wallets
+          SET
+            balance = balance - ${amountFixed}::numeric,
+            updated_at = NOW()
+          WHERE user_id = ${user.id}
+            AND balance >= ${amountFixed}::numeric
+            AND NOT EXISTS (
+              SELECT 1
+              FROM existing_pending
+            )
+            AND (
+              SELECT total
+              FROM daily_total
+            ) + ${amountFixed}::numeric <= ${MAX_DAILY_WITHDRAWAL}::numeric
+          RETURNING user_id
+        )
+        INSERT INTO withdrawals (
+          user_id,
+          amount,
+          fee,
+          net_amount,
+          currency,
+          payout_address,
+          status,
+          provider
+        )
+        SELECT
+          user_id,
+          ${amountFixed}::numeric,
+          ${feeFixed}::numeric,
+          ${netFixed}::numeric,
+          ${CURRENCY},
+          ${payoutAddress},
+          'pending',
+          'faucetpay'
+        FROM deducted
+        RETURNING
+          id,
+          amount,
+          fee,
+          net_amount,
+          currency,
+          payout_address,
+          status,
+          provider,
+          created_at
+      `);
+    });
 
     if (result.rows.length === 0) {
       const walletResult = await db.execute(sql`

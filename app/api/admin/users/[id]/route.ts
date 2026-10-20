@@ -3,8 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, transactionDb } from "@/lib/db";
 import { sessions, users } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
-
-const ADMIN_EMAIL = "gatapro901@gmail.com";
+import { ADMIN_EMAIL } from "@/lib/config";
 
 export async function PATCH(
   request: Request,

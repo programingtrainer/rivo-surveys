@@ -98,6 +98,7 @@ type UserDetails = {
     title: string;
     description: string;
     rewardUsd: string | number;
+    verificationStatus: string;
     completedAt: string;
   }[];
   telegramCodes: {
@@ -1264,8 +1265,16 @@ export default function AdminUsers({
                               </td>
 
                               <td className="px-4 py-4">
-                                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                                  Completed
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                    task.verificationStatus.toLowerCase() === "verified"
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : task.verificationStatus.toLowerCase() === "pending"
+                                        ? "bg-amber-50 text-amber-700"
+                                        : "bg-red-50 text-red-700"
+                                  }`}
+                                >
+                                  {task.verificationStatus}
                                 </span>
                               </td>
 

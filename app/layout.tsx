@@ -3,6 +3,7 @@ import "./globals.css";
 import LiveRefresh from "./LiveRefresh";
 import StructuredData from "./StructuredData";
 import { SITE_URL } from "@/lib/config";
+import { headers } from "next/headers";
 
 const siteUrl = SITE_URL;
 
@@ -82,15 +83,17 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en">
       <body className="min-h-screen">
-        <StructuredData />
+        <StructuredData nonce={nonce} />
         <LiveRefresh />
         {children}
       </body>

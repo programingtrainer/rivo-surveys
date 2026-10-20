@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { and, eq, sql } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db, transactionDb } from "@/lib/db";
 import {
   dailyTaskCompletions,
   dailyTasks,
@@ -65,12 +65,25 @@ export async function PATCH(request: Request) {
     }
 
     if (action === "reject") {
-      await db
+      const [rejected] = await db
         .update(dailyTaskCompletions)
         .set({
           verificationStatus: "rejected",
         })
-        .where(eq(dailyTaskCompletions.id, completionId));
+        .where(
+          and(
+            eq(dailyTaskCompletions.id, completionId),
+            eq(dailyTaskCompletions.verificationStatus, "pending"),
+          ),
+        )
+        .returning({ id: dailyTaskCompletions.id });
+
+      if (!rejected) {
+        return NextResponse.json(
+          { error: "Completion was already processed" },
+          { status: 409 },
+        );
+      }
 
       return NextResponse.json({
         success: true,
@@ -78,36 +91,44 @@ export async function PATCH(request: Request) {
       });
     }
 
-    const [updated] = await db
-      .update(dailyTaskCompletions)
-      .set({
-        verificationStatus: "verified",
-        verifiedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(dailyTaskCompletions.id, completionId),
-          eq(dailyTaskCompletions.verificationStatus, "pending")
+    const updated = await transactionDb.transaction(async (tx) => {
+      const [completion] = await tx
+        .update(dailyTaskCompletions)
+        .set({
+          verificationStatus: "verified",
+          verifiedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(dailyTaskCompletions.id, completionId),
+            eq(dailyTaskCompletions.verificationStatus, "pending"),
+          ),
         )
-      )
-      .returning();
+        .returning();
+
+      if (!completion) {
+        return null;
+      }
+
+      await tx
+        .insert(wallets)
+        .values({
+          userId: completion.userId,
+          balance: completion.rewardUsd,
+        })
+        .onConflictDoUpdate({
+          target: wallets.userId,
+          set: {
+            balance: sql`${wallets.balance} + ${completion.rewardUsd}`,
+          },
+        });
+
+      return completion;
+    });
 
     if (!updated) {
       return NextResponse.json({ error: "Completion was already processed" }, { status: 409 });
     }
-
-    await db
-      .insert(wallets)
-      .values({
-        userId: updated.userId,
-        balance: updated.rewardUsd,
-      })
-      .onConflictDoUpdate({
-        target: wallets.userId,
-        set: {
-          balance: sql`${wallets.balance} + ${updated.rewardUsd}`,
-        },
-      });
 
     return NextResponse.json({
       success: true,

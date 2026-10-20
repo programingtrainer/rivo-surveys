@@ -23,7 +23,7 @@ import AppHeader from "../AppHeader";
 export default async function AdminPage() {
   if (!(await isAdmin())) redirect("/dashboard");
 
-  const nonAdmin = sql`${users.email} <> ${ADMIN_EMAIL}`;
+  const nonAdmin = sql`lower(${users.email}) <> ${ADMIN_EMAIL}`;
 
   const surveyStats = db
     .select({

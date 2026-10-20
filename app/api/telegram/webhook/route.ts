@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db, transactionDb } from "@/lib/db";
 import {
   telegramAccounts,
   telegramLinkTokens,
@@ -9,6 +10,19 @@ import {
   getTelegramChatMember,
   sendTelegramMessage,
 } from "@/lib/telegram";
+
+type TelegramWebhookUpdate = {
+  update_id?: number;
+  message?: {
+    from?: {
+      id?: number;
+      username?: string;
+      first_name?: string;
+      last_name?: string;
+    };
+    text?: unknown;
+  };
+};
 
 async function hashToken(token: string) {
   const data = new TextEncoder().encode(token);
@@ -38,7 +52,29 @@ async function safeSendMessage(chatId: string | number, text: string) {
 }
 
 export async function POST(request: Request) {
-  let update: any = null;
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+  if (!webhookSecret || !/^[A-Za-z0-9_-]{32,256}$/.test(webhookSecret)) {
+    console.error("TELEGRAM_WEBHOOK_SECRET is missing or invalid");
+    return NextResponse.json(
+      { error: "Telegram webhook is not configured." },
+      { status: 500 },
+    );
+  }
+
+  const suppliedSecret =
+    request.headers.get("x-telegram-bot-api-secret-token") ?? "";
+  const expectedSecretBytes = Buffer.from(webhookSecret);
+  const suppliedSecretBytes = Buffer.from(suppliedSecret);
+
+  if (
+    expectedSecretBytes.length !== suppliedSecretBytes.length ||
+    !timingSafeEqual(expectedSecretBytes, suppliedSecretBytes)
+  ) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  let update: TelegramWebhookUpdate | null = null;
   let telegramUserId: string | null = null;
 
   try {
@@ -59,10 +95,10 @@ export async function POST(request: Request) {
     console.log("Telegram webhook update:", {
       updateId: update?.update_id ?? null,
       telegramUserId,
-      text: text ? text.slice(0, 80) : null,
+      isStartCommand: /^\/start(?:@\w+)?(?:\s|$)/i.test(text),
     });
 
-    if (!message || !telegramUser || !text) {
+    if (!message || !telegramUser?.id || !text) {
       return NextResponse.json({ ok: true });
     }
 
@@ -85,11 +121,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    console.log("Telegram webhook: hashing link token");
+    if (!/^[a-f0-9]{64}$/i.test(token)) {
+      await safeSendMessage(
+        telegramUser.id,
+        "❌ This Rivo linking link is invalid or expired.\n\nPlease generate a new linking link from your Rivo account.",
+      );
+
+      return NextResponse.json({ ok: true });
+    }
 
     const tokenHash = await hashToken(token);
-
-    console.log("Telegram webhook: looking up link token");
 
     const tokenRows = await db
       .select()
@@ -114,11 +155,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    console.log("Telegram webhook: link token valid");
-
     const chatId = getChatId();
-
-    console.log("Telegram webhook: checking membership");
 
     let membership;
 
@@ -153,11 +190,6 @@ export async function POST(request: Request) {
       (membership.status !== "restricted" ||
         membership.is_member === true);
 
-    console.log("Telegram webhook: membership result", {
-      status: membership.status,
-      isMember,
-    });
-
     if (!isMember) {
       await safeSendMessage(
         telegramUser.id,
@@ -167,23 +199,67 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    console.log("Telegram webhook: checking existing Telegram account");
+    const linkResult = await transactionDb.transaction(async (tx) => {
+      const [existingTelegramAccount] = await tx
+        .select({ userId: telegramAccounts.userId })
+        .from(telegramAccounts)
+        .where(eq(telegramAccounts.telegramUserId, String(telegramUser.id)))
+        .limit(1);
 
-    const existingTelegramAccount = await db
-      .select()
-      .from(telegramAccounts)
-      .where(
-        eq(
-          telegramAccounts.telegramUserId,
-          String(telegramUser.id),
-        ),
-      )
-      .limit(1);
+      if (
+        existingTelegramAccount &&
+        existingTelegramAccount.userId !== linkToken.userId
+      ) {
+        return "already-linked" as const;
+      }
 
-    if (
-      existingTelegramAccount[0] &&
-      existingTelegramAccount[0].userId !== linkToken.userId
-    ) {
+      const now = new Date();
+      const [claimedToken] = await tx
+        .update(telegramLinkTokens)
+        .set({ usedAt: now })
+        .where(
+          and(
+            eq(telegramLinkTokens.id, linkToken.id),
+            isNull(telegramLinkTokens.usedAt),
+            gt(telegramLinkTokens.expiresAt, now),
+          ),
+        )
+        .returning({ id: telegramLinkTokens.id });
+
+      if (!claimedToken) {
+        return "expired" as const;
+      }
+
+      const [existingUserAccount] = await tx
+        .select({ id: telegramAccounts.id })
+        .from(telegramAccounts)
+        .where(eq(telegramAccounts.userId, linkToken.userId))
+        .limit(1);
+
+      const accountData = {
+        telegramUserId: String(telegramUser.id),
+        username: telegramUser.username ?? null,
+        firstName: telegramUser.first_name ?? null,
+        lastName: telegramUser.last_name ?? null,
+        updatedAt: now,
+      };
+
+      if (existingUserAccount) {
+        await tx
+          .update(telegramAccounts)
+          .set(accountData)
+          .where(eq(telegramAccounts.userId, linkToken.userId));
+      } else {
+        await tx.insert(telegramAccounts).values({
+          userId: linkToken.userId,
+          ...accountData,
+        });
+      }
+
+      return "linked" as const;
+    });
+
+    if (linkResult === "already-linked") {
       await safeSendMessage(
         telegramUser.id,
         "❌ This Telegram account is already linked to another Rivo account.\n\nOne Telegram account can only be linked to one Rivo account.",
@@ -192,45 +268,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    console.log("Telegram webhook: saving Telegram account");
+    if (linkResult === "expired") {
+      await safeSendMessage(
+        telegramUser.id,
+        "❌ This Rivo linking link is invalid or expired.\n\nPlease generate a new linking link from your Rivo account.",
+      );
 
-    const existingUserAccount = await db
-      .select()
-      .from(telegramAccounts)
-      .where(eq(telegramAccounts.userId, linkToken.userId))
-      .limit(1);
-
-    if (existingUserAccount[0]) {
-      await db
-        .update(telegramAccounts)
-        .set({
-          telegramUserId: String(telegramUser.id),
-          username: telegramUser.username ?? null,
-          firstName: telegramUser.first_name ?? null,
-          lastName: telegramUser.last_name ?? null,
-          updatedAt: new Date(),
-        })
-        .where(eq(telegramAccounts.userId, linkToken.userId));
-    } else {
-      await db.insert(telegramAccounts).values({
-        userId: linkToken.userId,
-        telegramUserId: String(telegramUser.id),
-        username: telegramUser.username ?? null,
-        firstName: telegramUser.first_name ?? null,
-        lastName: telegramUser.last_name ?? null,
-      });
+      return NextResponse.json({ ok: true });
     }
-
-    console.log("Telegram webhook: marking link token as used");
-
-    await db
-      .update(telegramLinkTokens)
-      .set({
-        usedAt: new Date(),
-      })
-      .where(eq(telegramLinkTokens.id, linkToken.id));
-
-    console.log("Telegram webhook: linking completed");
 
     await safeSendMessage(
       telegramUser.id,
@@ -246,14 +291,9 @@ export async function POST(request: Request) {
     console.error("============================================");
 
     if (telegramUserId) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message.slice(0, 300)
-          : "Unknown server error";
-
       await safeSendMessage(
         telegramUserId,
-        `⚠️ Rivo linking error.\\n\\n${errorMessage}\\n\\nPlease generate a new linking link and try again.`,
+        "⚠️ We couldn't complete Telegram linking right now. Please generate a new linking link and try again.",
       );
     }
 

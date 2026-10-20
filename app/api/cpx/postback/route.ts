@@ -49,7 +49,13 @@ export async function GET(request: Request) {
 
     const expectedHash = md5(`${transactionId}-${CPX_SECURE_HASH}`);
 
-    if (receivedHash.toLowerCase() !== expectedHash.toLowerCase()) {
+    if (
+      !/^[a-f0-9]{32}$/i.test(receivedHash) ||
+      !crypto.timingSafeEqual(
+        Buffer.from(receivedHash.toLowerCase(), "hex"),
+        Buffer.from(expectedHash, "hex"),
+      )
+    ) {
       console.error("Invalid CPX secure hash", {
         transactionId,
         userId,
@@ -67,6 +73,16 @@ export async function GET(request: Request) {
     if (!Number.isFinite(amountLocal) || amountLocal <= 0) {
       return NextResponse.json(
         { error: "Invalid amount" },
+        { status: 400 }
+      );
+    }
+
+    if (
+      amountUsd !== null &&
+      (!Number.isFinite(amountUsd) || amountUsd < 0)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid USD amount" },
         { status: 400 }
       );
     }
@@ -102,6 +118,10 @@ export async function GET(request: Request) {
      */
     if (status === "1") {
       const normalizedType = String(type || "").trim().toLowerCase();
+      const transactionStatus =
+        normalizedType === "complete" || normalizedType === "out"
+          ? "completed"
+          : "failed";
 
       const attemptStatus =
         normalizedType === "complete"
@@ -135,7 +155,7 @@ export async function GET(request: Request) {
             ${transactionId},
             ${userId},
             ${offerId},
-            'completed',
+            ${transactionStatus},
             ${type},
             ${amountLocal.toFixed(2)},
             ${
@@ -218,6 +238,7 @@ export async function GET(request: Request) {
               user_id,
               amount_local::numeric / 1000 AS amount
             FROM inserted
+            WHERE LOWER(COALESCE(type, '')) IN ('complete', 'out')
 
             UNION ALL
 
@@ -252,7 +273,8 @@ export async function GET(request: Request) {
         SELECT
           (SELECT COUNT(*) FROM inserted)::int AS inserted_count,
           (SELECT COUNT(*) FROM qualified)::int AS qualified_count,
-          (SELECT COUNT(*) FROM new_rewards)::int AS new_reward_count
+          (SELECT COUNT(*) FROM new_rewards)::int AS new_reward_count,
+          (SELECT COUNT(*) FROM wallet_credit)::int AS wallet_credit_count
       `);
 
       /*
@@ -293,9 +315,11 @@ export async function GET(request: Request) {
         inserted_count: number;
         qualified_count: number;
         new_reward_count: number;
+        wallet_credit_count: number;
       };
 
-      const credited = Number(row?.inserted_count ?? 0) > 0;
+      const recorded = Number(row?.inserted_count ?? 0) > 0;
+      const credited = Number(row?.wallet_credit_count ?? 0) > 0;
       const referralQualified =
         Number(row?.qualified_count ?? 0) > 0;
       const referralRewardsGranted =
@@ -304,7 +328,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         success: true,
         credited,
-        duplicate: !credited,
+        duplicate: !recorded,
         transaction_id: transactionId,
         reward_usd: credited ? rewardUsd : 0,
         survey_attempt_updated: attemptResult.rows.length > 0,

@@ -26,6 +26,7 @@ export default function RegisterForm({ siteKey }: RegisterFormProps) {
   const requirements = useMemo(
     () => ({
       length: password.length >= 8,
+      withinBcryptLimit: new TextEncoder().encode(password).length <= 72,
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
       number: /[0-9]/.test(password),
@@ -241,6 +242,10 @@ export default function RegisterForm({ siteKey }: RegisterFormProps) {
                 <Requirement
                   valid={requirements.length}
                   text="At least 8 characters"
+                />
+                <Requirement
+                  valid={requirements.withinBcryptLimit}
+                  text="At most 72 UTF-8 bytes"
                 />
                 <Requirement
                   valid={requirements.uppercase}

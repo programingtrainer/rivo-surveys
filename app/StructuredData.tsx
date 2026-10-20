@@ -1,5 +1,5 @@
 import { SITE_URL } from "@/lib/config";
-export default function StructuredData() {
+export default function StructuredData({ nonce }: { nonce?: string }) {
   const siteUrl = SITE_URL;
 
   const websiteSchema = {
@@ -43,6 +43,7 @@ export default function StructuredData() {
   return (
     <>
       <script
+        nonce={nonce}
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(websiteSchema),
@@ -50,6 +51,7 @@ export default function StructuredData() {
       />
 
       <script
+        nonce={nonce}
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(organizationSchema),
@@ -57,6 +59,7 @@ export default function StructuredData() {
       />
 
       <script
+        nonce={nonce}
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(webApplicationSchema),

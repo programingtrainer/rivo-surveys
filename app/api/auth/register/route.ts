@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 
 import { db, transactionDb } from "@/lib/db";
+import { isStrongPassword } from "@/lib/password";
 import {
   users,
   sessions,
@@ -14,17 +15,6 @@ import {
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function isStrongPassword(password: string) {
-  return (
-    password.length >= 8 &&
-    /[A-Z]/.test(password) &&
-    /[a-z]/.test(password) &&
-    /[0-9]/.test(password) &&
-    /[^A-Za-z0-9]/.test(password) &&
-    !/\s/.test(password)
-  );
 }
 
 function generateReferralCode() {
@@ -126,7 +116,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character, with no spaces.",
+            "Password must be at least 8 characters, no more than 72 UTF-8 bytes, and contain uppercase, lowercase, number, and special character, with no spaces.",
         },
         { status: 400 }
       );

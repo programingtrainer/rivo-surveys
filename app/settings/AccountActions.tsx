@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { isStrongPassword } from "@/lib/password";
 
 export default function AccountActions({
   isAdmin,
@@ -33,9 +34,9 @@ export default function AccountActions({
       return;
     }
 
-    if (password.length < 8) {
+    if (!isStrongPassword(password)) {
       setPasswordError(
-        "Password must be at least 8 characters long."
+        "Use at least 8 characters, with uppercase, lowercase, a number, and a special character. Do not use spaces or exceed 72 UTF-8 bytes."
       );
       return;
     }
@@ -65,7 +66,9 @@ export default function AccountActions({
 
       setPassword("");
       setConfirmPassword("");
-      setPasswordMessage("Your password has been changed successfully.");
+      setPasswordMessage(
+        "Your password has been changed successfully. Other sessions were signed out."
+      );
     } catch {
       setPasswordError(
         "Something went wrong. Please try again."
@@ -148,7 +151,7 @@ export default function AccountActions({
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-black/55">
-            Choose a strong password with at least 8 characters.
+            Use at least 8 characters with uppercase, lowercase, a number, and a special character. No spaces; maximum 72 UTF-8 bytes.
           </p>
         </div>
 

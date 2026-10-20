@@ -13,12 +13,10 @@ import {
   users,
   wallets,
   withdrawals,
-  weeklyChallenges,
   weeklyChallengeWinners,
 } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
-
-const ADMIN_EMAIL = "gatapro901@gmail.com";
+import { ADMIN_EMAIL } from "@/lib/config";
 
 export async function GET(
   _request: Request,
@@ -47,6 +45,7 @@ export async function GET(
           select count(*)
           from ${dailyTaskCompletions}
           where ${dailyTaskCompletions.userId} = ${users.id}
+            and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
         )`,
 
         redeemedTelegramCodes: sql<number>`(
@@ -257,6 +256,7 @@ export async function GET(
           title: dailyTasks.title,
           description: dailyTasks.description,
           rewardUsd: dailyTaskCompletions.rewardUsd,
+          verificationStatus: dailyTaskCompletions.verificationStatus,
           completedAt: dailyTaskCompletions.completedAt,
         })
         .from(dailyTaskCompletions)
@@ -348,6 +348,12 @@ export async function GET(
               select sum(${telegramCodeRedemptions.reward})
               from ${telegramCodeRedemptions}
               where ${telegramCodeRedemptions.userId} = ${id}
+            ), 0)
+            +
+            coalesce((
+              select sum(${weeklyChallengeWinners.rewardUsd})
+              from ${weeklyChallengeWinners}
+              where ${weeklyChallengeWinners.userId} = ${id}
             ), 0)
           )`.as("total_earned_usd"),
         })

@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { desc, ne, sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { cpxTransactions, dailyTaskCompletions, telegramCodeRedemptions, referrals, users, wallets, withdrawals, weeklyChallengeWinners } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
-
-const ADMIN_EMAIL = "gatapro901@gmail.com";
+import { ADMIN_EMAIL } from "@/lib/config";
 
 export async function GET() {
   if (!(await isAdmin())) {
@@ -37,6 +36,7 @@ export async function GET() {
         select count(*)
         from ${dailyTaskCompletions}
         where ${dailyTaskCompletions.userId} = ${users.id}
+          and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
       )`,
 
       redeemedTelegramCodes: sql<number>`(
@@ -139,7 +139,7 @@ export async function GET() {
       )`,
     })
     .from(users)
-    .where(ne(users.email, ADMIN_EMAIL))
+    .where(sql`lower(${users.email}) <> ${ADMIN_EMAIL}`)
     .orderBy(desc(users.createdAt));
 
   return NextResponse.json({ users: result });
