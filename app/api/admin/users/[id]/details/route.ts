@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -9,6 +9,7 @@ import {
   dailyTasks,
   referrals,
   surveyAttempts,
+  telegramCodes,
   users,
   wallets,
   withdrawals,
@@ -46,6 +47,12 @@ export async function GET(
           select count(*)
           from ${dailyTaskCompletions}
           where ${dailyTaskCompletions.userId} = ${users.id}
+        )`,
+
+        redeemedTelegramCodes: sql<number>`(
+          select count(*)
+          from ${telegramCodeRedemptions}
+          where ${telegramCodeRedemptions.userId} = ${users.id}
         )`,
 
         balance: sql<string>`coalesce((
@@ -202,6 +209,7 @@ export async function GET(
       surveyRows,
       surveyAttemptRows,
       dailyTaskRows,
+      telegramCodeRows,
       withdrawalRows,
       surveyStats,
       referralRows,
@@ -258,6 +266,21 @@ export async function GET(
         )
         .where(eq(dailyTaskCompletions.userId, id))
         .orderBy(asc(dailyTaskCompletions.completedAt)),
+
+      db
+        .select({
+          id: telegramCodeRedemptions.id,
+          code: telegramCodes.code,
+          reward: telegramCodeRedemptions.reward,
+          redeemedAt: telegramCodeRedemptions.redeemedAt,
+        })
+        .from(telegramCodeRedemptions)
+        .innerJoin(
+          telegramCodes,
+          eq(telegramCodeRedemptions.codeId, telegramCodes.id)
+        )
+        .where(eq(telegramCodeRedemptions.userId, id))
+        .orderBy(desc(telegramCodeRedemptions.redeemedAt)),
 
       db
         .select({
@@ -395,6 +418,7 @@ export async function GET(
       surveys: surveyRows,
       surveyAttempts: surveyAttemptRows,
       dailyTasks: dailyTaskRows,
+      telegramCodes: telegramCodeRows,
       withdrawals: withdrawalRows,
 
       weeklyChallenges: weeklyChallengeRows.rows.map((row) => ({

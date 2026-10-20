@@ -11,6 +11,7 @@ type User = {
   balance: string | number;
   totalSurveys: number | string;
   completedDailyTasks: number | string;
+  redeemedTelegramCodes: number | string;
   successfulSurveys: number | string;
   outSurveys?: number | string;
   failedSurveys: number | string;
@@ -98,6 +99,12 @@ type UserDetails = {
     description: string;
     rewardUsd: string | number;
     completedAt: string;
+  }[];
+  telegramCodes: {
+    id: string;
+    code: string;
+    reward: string | number;
+    redeemedAt: string;
   }[];
   withdrawals: Withdrawal[];
   referrals: {
@@ -366,7 +373,7 @@ export default function AdminUsers({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1450px] text-left">
+          <table className="w-full min-w-[1550px] text-left">
             <thead className="border-b border-slate-200 bg-slate-50">
               <tr>
                 <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
@@ -383,6 +390,10 @@ export default function AdminUsers({
 
                 <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
                   Daily Tasks
+                </th>
+
+                <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
+                  Telegram Codes
                 </th>
 
                 <th className="px-5 py-3 text-xs font-semibold uppercase text-slate-500">
@@ -456,6 +467,12 @@ export default function AdminUsers({
                   <td className="px-5 py-4 text-center">
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
                       {count(u.completedDailyTasks)}
+                    </span>
+                  </td>
+
+                  <td className="px-5 py-4 text-center">
+                    <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+                      {count(u.redeemedTelegramCodes)}
                     </span>
                   </td>
 
@@ -556,7 +573,7 @@ export default function AdminUsers({
               {!list.length && (
                 <tr>
                   <td
-                    colSpan={12}
+                    colSpan={13}
                     className="px-5 py-12 text-center text-sm text-slate-500"
                   >
                     No users match your search.
@@ -706,6 +723,16 @@ export default function AdminUsers({
                       </p>
                     </div>
 
+                    <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-cyan-600">
+                        Telegram Codes Used
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-cyan-700">
+                        {count(details.user.redeemedTelegramCodes)}
+                      </p>
+                    </div>
+
                     <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
                       <p className="text-xs font-semibold uppercase text-violet-600">
                         Weekly Challenge Wins
@@ -764,6 +791,57 @@ export default function AdminUsers({
                       <p className="mt-2 text-xl font-bold">
                         {count(details.user.paidWithdrawalCount)}
                       </p>
+                    </div>
+                  </section>
+
+                  <section className="rounded-2xl border border-cyan-200 bg-white p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold">Telegram Code History</h4>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Codes redeemed by this user and their rewards.
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
+                        {count(details.user.redeemedTelegramCodes)} used
+                      </span>
+                    </div>
+
+                    <div className="mt-5 overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
+                            <th className="px-3 py-3">Code</th>
+                            <th className="px-3 py-3">Reward</th>
+                            <th className="px-3 py-3">Used at</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {details.telegramCodes.map((redemption) => (
+                            <tr key={redemption.id} className="border-b border-slate-100 last:border-0">
+                              <td className="px-3 py-3 font-mono font-semibold text-slate-800">
+                                {redemption.code}
+                              </td>
+                              <td className="px-3 py-3 font-semibold text-emerald-700">
+                                {money(redemption.reward)}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3 text-slate-500">
+                                {date(redemption.redeemedAt)}
+                              </td>
+                            </tr>
+                          ))}
+
+                          {!details.telegramCodes.length && (
+                            <tr>
+                              <td colSpan={3} className="px-3 py-8 text-center text-sm text-slate-500">
+                                This user has not redeemed any Telegram codes yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </section>
 

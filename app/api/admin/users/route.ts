@@ -39,6 +39,12 @@ export async function GET() {
         where ${dailyTaskCompletions.userId} = ${users.id}
       )`,
 
+      redeemedTelegramCodes: sql<number>`(
+        select count(*)
+        from ${telegramCodeRedemptions}
+        where ${telegramCodeRedemptions.userId} = ${users.id}
+      )`,
+
       successfulSurveys: sql<number>`(
         select count(*)
         from ${cpxTransactions}

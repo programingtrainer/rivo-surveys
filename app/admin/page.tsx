@@ -86,6 +86,12 @@ export default async function AdminPage() {
             and lower(${dailyTaskCompletions.verificationStatus}) = 'verified'
         )`,
 
+        redeemedTelegramCodes: sql<number>`(
+          select count(*)
+          from ${telegramCodeRedemptions}
+          where ${telegramCodeRedemptions.userId} = ${users.id}
+        )`,
+
         totalEarnedUsd: sql<string>`(
           coalesce((
             select sum(${cpxTransactions.amountUsd})
