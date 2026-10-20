@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { cpxTransactions, users, weeklyChallengePrizes, weeklyChallengeWinners, weeklyChallenges } from "@/lib/schema";
 import { settleExpiredWeeklyChallenges } from "@/lib/weekly-challenges";
+import { successfulSurveyCondition } from "@/lib/survey-stats";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -27,8 +28,7 @@ export async function GET() {
     }).from(cpxTransactions).innerJoin(users, eq(cpxTransactions.userId, users.id)).where(and(
       gte(cpxTransactions.createdAt, challenge.startsAt),
       lt(cpxTransactions.createdAt, challenge.expiresAt),
-      eq(cpxTransactions.status, "completed"),
-      sql`lower(coalesce(${cpxTransactions.type}, '')) = 'complete'`,
+      successfulSurveyCondition,
     )).groupBy(cpxTransactions.userId, users.name, users.email).orderBy(sql`${metric} desc, ${cpxTransactions.userId} asc`).limit(100);
 
     const prizes = await db.select().from(weeklyChallengePrizes).where(eq(weeklyChallengePrizes.challengeId, challenge.id));

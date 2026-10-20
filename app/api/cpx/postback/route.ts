@@ -166,7 +166,31 @@ export async function GET(request: Request) {
             ${ipClick}
           )
           ON CONFLICT (transaction_id) DO NOTHING
-          RETURNING user_id, amount_local, type
+          RETURNING transaction_id, user_id, amount_local, amount_usd, type
+        ),
+
+        attempt_update AS (
+          UPDATE survey_attempts AS attempt
+          SET
+            status = ${attemptStatus},
+            type = inserted.type,
+            transaction_id = inserted.transaction_id,
+            amount_local = inserted.amount_local,
+            amount_usd = inserted.amount_usd,
+            completed_at = NOW(),
+            updated_at = NOW()
+          FROM inserted
+          WHERE attempt.id = (
+            SELECT candidate.id
+            FROM survey_attempts candidate
+            WHERE candidate.user_id = inserted.user_id
+              AND candidate.offer_id = ${offerId}
+              AND candidate.status = 'started'
+              AND candidate.started_at >= NOW() - INTERVAL '24 hours'
+            ORDER BY candidate.started_at DESC
+            LIMIT 1
+          )
+          RETURNING attempt.id
         ),
 
         qualified AS (
@@ -274,41 +298,8 @@ export async function GET(request: Request) {
           (SELECT COUNT(*) FROM inserted)::int AS inserted_count,
           (SELECT COUNT(*) FROM qualified)::int AS qualified_count,
           (SELECT COUNT(*) FROM new_rewards)::int AS new_reward_count,
-          (SELECT COUNT(*) FROM wallet_credit)::int AS wallet_credit_count
-      `);
-
-      /*
-       * Link this CPX postback to the survey attempt that
-       * started most recently for the same user + offer.
-       *
-       * We intentionally match only "started" attempts so
-       * duplicate CPX callbacks cannot rewrite an old attempt.
-       */
-      const attemptResult = await db.execute(sql`
-        UPDATE survey_attempts
-        SET
-          status = ${attemptStatus},
-          type = ${type},
-          transaction_id = ${transactionId},
-          amount_local = ${amountLocal.toFixed(2)},
-          amount_usd = ${
-            amountUsd !== null && Number.isFinite(amountUsd)
-              ? amountUsd.toFixed(4)
-              : rewardUsd.toFixed(4)
-          },
-          completed_at = NOW(),
-          updated_at = NOW()
-        WHERE id = (
-          SELECT id
-          FROM survey_attempts
-          WHERE user_id = ${userId}
-            AND offer_id = ${offerId}
-            AND status = 'started'
-            AND started_at >= NOW() - INTERVAL '24 hours'
-          ORDER BY started_at DESC
-          LIMIT 1
-        )
-        RETURNING id
+          (SELECT COUNT(*) FROM wallet_credit)::int AS wallet_credit_count,
+          (SELECT COUNT(*) FROM attempt_update)::int AS attempt_updated_count
       `);
 
       const row = result.rows[0] as {
@@ -316,6 +307,7 @@ export async function GET(request: Request) {
         qualified_count: number;
         new_reward_count: number;
         wallet_credit_count: number;
+        attempt_updated_count: number;
       };
 
       const recorded = Number(row?.inserted_count ?? 0) > 0;
@@ -331,7 +323,8 @@ export async function GET(request: Request) {
         duplicate: !recorded,
         transaction_id: transactionId,
         reward_usd: credited ? rewardUsd : 0,
-        survey_attempt_updated: attemptResult.rows.length > 0,
+        survey_attempt_updated:
+          Number(row?.attempt_updated_count ?? 0) > 0,
         survey_status: attemptStatus,
         referral_qualified: referralQualified,
         referral_rewards_granted: referralRewardsGranted,
@@ -354,69 +347,77 @@ export async function GET(request: Request) {
             updated_at = NOW()
           WHERE transaction_id = ${transactionId}
             AND status = 'completed'
-          RETURNING user_id, amount_local
-        )
-        UPDATE wallets
-        SET
-          balance = GREATEST(
-            0,
-            wallets.balance - (reversed.amount_local::numeric / 1000)
-          ),
-          updated_at = NOW()
-        FROM reversed
-        WHERE wallets.user_id = reversed.user_id
-        RETURNING wallets.user_id
-      `);
+          RETURNING transaction_id, user_id, amount_local
+        ),
 
-      /*
-       * If this transaction belongs to a survey attempt,
-       * mark that attempt as failed/canceled.
-       */
-      const attemptResult = await db.execute(sql`
-        UPDATE survey_attempts
-        SET
-          status = 'failed',
-          type = ${type},
-          transaction_id = ${transactionId},
-          amount_local = ${amountLocal.toFixed(2)},
-          amount_usd = ${
-            amountUsd !== null && Number.isFinite(amountUsd)
-              ? amountUsd.toFixed(4)
-              : rewardUsd.toFixed(4)
-          },
-          completed_at = NOW(),
-          updated_at = NOW()
-        WHERE id = (
-          SELECT id
-          FROM survey_attempts
-          WHERE (
-            transaction_id = ${transactionId}
-            OR (
-              user_id = ${userId}
-              AND offer_id = ${offerId}
-              AND status = 'started'
-              AND started_at >= NOW() - INTERVAL '24 hours'
-            )
+        attempt_update AS (
+          UPDATE survey_attempts AS attempt
+          SET
+            status = 'failed',
+            type = ${type},
+            transaction_id = reversed.transaction_id,
+            amount_local = ${amountLocal.toFixed(2)},
+            amount_usd = ${
+              amountUsd !== null && Number.isFinite(amountUsd)
+                ? amountUsd.toFixed(4)
+                : rewardUsd.toFixed(4)
+            },
+            completed_at = NOW(),
+            updated_at = NOW()
+          FROM reversed
+          WHERE attempt.id = (
+            SELECT candidate.id
+            FROM survey_attempts candidate
+            WHERE candidate.transaction_id = reversed.transaction_id
+              OR (
+                candidate.user_id = reversed.user_id
+                AND candidate.offer_id = ${offerId}
+                AND candidate.status = 'started'
+                AND candidate.started_at >= NOW() - INTERVAL '24 hours'
+              )
+            ORDER BY
+              CASE
+                WHEN candidate.transaction_id = reversed.transaction_id THEN 0
+                ELSE 1
+              END,
+              candidate.started_at DESC
+            LIMIT 1
           )
-          ORDER BY
-            CASE
-              WHEN transaction_id = ${transactionId} THEN 0
-              ELSE 1
-            END,
-            started_at DESC
-          LIMIT 1
+          RETURNING attempt.id
+        ),
+
+        wallet_reversal AS (
+          UPDATE wallets
+          SET
+            balance = GREATEST(
+              0,
+              wallets.balance - (reversed.amount_local::numeric / 1000)
+            ),
+            updated_at = NOW()
+          FROM reversed
+          WHERE wallets.user_id = reversed.user_id
+          RETURNING wallets.user_id
         )
-        RETURNING id
+
+        SELECT
+          (SELECT COUNT(*) FROM reversed)::int AS reversed_count,
+          (SELECT COUNT(*) FROM attempt_update)::int AS attempt_updated_count,
+          (SELECT COUNT(*) FROM wallet_reversal)::int AS wallet_reversal_count
       `);
 
-      const reversed = result.rows.length > 0;
+      const row = result.rows[0] as {
+        reversed_count: number;
+        attempt_updated_count: number;
+      };
+      const reversed = Number(row?.reversed_count ?? 0) > 0;
 
       return NextResponse.json({
         success: true,
         reversed,
         duplicate: !reversed,
         transaction_id: transactionId,
-        survey_attempt_updated: attemptResult.rows.length > 0,
+        survey_attempt_updated:
+          Number(row?.attempt_updated_count ?? 0) > 0,
         survey_status: "failed",
       });
     }

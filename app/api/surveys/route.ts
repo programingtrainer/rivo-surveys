@@ -73,38 +73,58 @@ export async function GET(request: Request) {
       );
     }
 
-    const data = await response.json();
+    const responseData: unknown = await response.json();
 
-    if (data?.status !== "success") {
-      console.error("CPX API returned an error:", data);
+    if (
+      !responseData ||
+      typeof responseData !== "object" ||
+      !("status" in responseData) ||
+      responseData.status !== "success"
+    ) {
+      console.error("CPX API returned an error:", responseData);
 
       return NextResponse.json(
-        {
-          surveys: [],
-          count: 0,
-        },
-        { status: 200 }
+        { error: "Unable to load surveys" },
+        { status: 502 }
       );
     }
 
-    const surveys = Array.isArray(data.surveys)
-      ? data.surveys.map((survey: any) => ({
-          id: String(survey.id),
-          loi: Number(survey.loi) || 0,
-          payout: Number(survey.payout) || 0,
-          payoutUsd: Number(survey.payout_publisher_usd) || 0,
-          conversionRate: Number(survey.conversion_rate) || 0,
-          type: survey.type || null,
-          top: Number(survey.top) || 0,
-          href: survey.href || survey.href_new || null,
-        }))
-      : [];
+    const data = responseData as Record<string, unknown>;
+    const surveyItems = Array.isArray(data.surveys) ? data.surveys : [];
+    const surveys = surveyItems.flatMap((item) => {
+      if (typeof item !== "object" || item === null || !("id" in item)) {
+        return [];
+      }
+
+      const survey = item as Record<string, unknown>;
+      if (survey.id === null || survey.id === undefined) return [];
+
+      return [{
+        id: String(survey.id),
+        loi: Number(survey.loi) || 0,
+        payout: Number(survey.payout) || 0,
+        payoutUsd: Number(survey.payout_publisher_usd) || 0,
+        conversionRate: Number(survey.conversion_rate) || 0,
+        type: typeof survey.type === "string" ? survey.type : null,
+        top: Number(survey.top) || 0,
+        href:
+          typeof survey.href === "string"
+            ? survey.href
+            : typeof survey.href_new === "string"
+              ? survey.href_new
+              : null,
+      }];
+    });
+    const reportedAvailable = Number(data.count_available_surveys);
+    const available = Number.isFinite(reportedAvailable) && reportedAvailable >= 0
+      ? reportedAvailable
+      : surveys.length;
 
     return NextResponse.json(
       {
         surveys,
         count: surveys.length,
-        available: Number(data.count_available_surveys) || surveys.length,
+        available,
       },
       {
         status: 200,

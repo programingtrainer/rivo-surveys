@@ -5,6 +5,12 @@ import { db } from "@/lib/db";
 import { cpxTransactions, dailyTaskCompletions, telegramCodeRedemptions, referrals, users, wallets, withdrawals, weeklyChallengeWinners } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 import { ADMIN_EMAIL } from "@/lib/config";
+import {
+  failedSurveyCondition,
+  outSurveyCondition,
+  rewardedSurveyCondition,
+  successfulSurveyCondition,
+} from "@/lib/survey-stats";
 
 export async function GET() {
   if (!(await isAdmin())) {
@@ -49,26 +55,21 @@ export async function GET() {
         select count(*)
         from ${cpxTransactions}
         where ${cpxTransactions.userId} = ${users.id}
-          and lower(${cpxTransactions.status}) = 'completed'
-          and lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
+          and ${successfulSurveyCondition}
       )`,
 
       outSurveys: sql<number>`(
         select count(*)
         from ${cpxTransactions}
         where ${cpxTransactions.userId} = ${users.id}
-          and lower(${cpxTransactions.status}) = 'completed'
-          and lower(coalesce(${cpxTransactions.type}, '')) = 'out'
+          and ${outSurveyCondition}
       )`,
 
       failedSurveys: sql<number>`(
         select count(*)
         from ${cpxTransactions}
         where ${cpxTransactions.userId} = ${users.id}
-          and (
-            lower(${cpxTransactions.status}) <> 'completed'
-            or lower(coalesce(${cpxTransactions.type}, '')) not in ('complete', 'out')
-          )
+          and ${failedSurveyCondition}
       )`,
 
       withdrawalCount: sql<number>`(
@@ -101,8 +102,7 @@ export async function GET() {
           select sum(${cpxTransactions.amountUsd})
           from ${cpxTransactions}
           where ${cpxTransactions.userId} = ${users.id}
-            and lower(${cpxTransactions.status}) = 'completed'
-            and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
+            and ${rewardedSurveyCondition}
         ), 0)
         +
         coalesce((

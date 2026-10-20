@@ -1372,14 +1372,11 @@ export default function AdminUsers({
                               <td className="px-4 py-3">
                                 <span
                                   className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(
-                                    survey.status
+                                    survey.status,
+                                    survey.type
                                   )}`}
                                 >
-                                  {String(survey.status).toLowerCase() === "completed"
-                                    ? "Completed"
-                                    : String(survey.status).toLowerCase() === "out"
-                                      ? "Out"
-                                      : "Failed"}
+                                  {surveyResult(survey.status, survey.type)}
                                 </span>
                               </td>
 

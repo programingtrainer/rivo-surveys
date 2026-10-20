@@ -11,6 +11,7 @@ import {
 } from "@/lib/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { getTelegramChatMember } from "@/lib/telegram";
+import { successfulSurveyCondition } from "@/lib/survey-stats";
 
 function isTelegramMember(status: string, isMember?: boolean) {
   return (
@@ -211,8 +212,7 @@ export async function POST(request: Request) {
     else if (task.verificationType === "survey_complete") {
       const conditions = [
         eq(cpxTransactions.userId, user.id),
-        eq(cpxTransactions.status, "completed"),
-        sql`LOWER(COALESCE(${cpxTransactions.type}, '')) = 'complete'`,
+        successfulSurveyCondition,
         gte(cpxTransactions.createdAt, task.startsAt),
         lt(cpxTransactions.createdAt, task.expiresAt),
       ];

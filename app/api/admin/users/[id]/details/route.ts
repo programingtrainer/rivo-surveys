@@ -17,6 +17,12 @@ import {
 } from "@/lib/schema";
 import { isAdmin } from "@/lib/auth";
 import { ADMIN_EMAIL } from "@/lib/config";
+import {
+  failedSurveyCondition,
+  outSurveyCondition,
+  rewardedSurveyCondition,
+  successfulSurveyCondition,
+} from "@/lib/survey-stats";
 
 export async function GET(
   _request: Request,
@@ -70,24 +76,19 @@ export async function GET(
           SELECT COUNT(*)
           FROM ${cpxTransactions}
           WHERE ${cpxTransactions.userId} = ${users.id}
-            AND lower(${cpxTransactions.status}) = 'completed'
-            AND lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
+            AND ${successfulSurveyCondition}
         )`,
         outSurveys: sql<number>`(
           SELECT COUNT(*)
           FROM ${cpxTransactions}
           WHERE ${cpxTransactions.userId} = ${users.id}
-            AND lower(${cpxTransactions.status}) = 'completed'
-            AND lower(coalesce(${cpxTransactions.type}, '')) = 'out'
+            AND ${outSurveyCondition}
         )`,
         failedSurveys: sql<number>`(
           SELECT COUNT(*)
           FROM ${cpxTransactions}
           WHERE ${cpxTransactions.userId} = ${users.id}
-            AND (
-              lower(${cpxTransactions.status}) <> 'completed'
-              OR lower(coalesce(${cpxTransactions.type}, '')) NOT IN ('complete', 'out')
-            )
+            AND ${failedSurveyCondition}
         )`,
         startedSurveys: sql<number>`(
           SELECT COUNT(*)
@@ -102,8 +103,7 @@ export async function GET(
             select sum(${cpxTransactions.amountUsd})
             from ${cpxTransactions}
             where ${cpxTransactions.userId} = ${users.id}
-              and lower(${cpxTransactions.status}) = 'completed'
-              and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
+              and ${rewardedSurveyCondition}
           ), 0)
           +
           coalesce((
@@ -230,7 +230,7 @@ export async function GET(
         })
         .from(cpxTransactions)
         .where(eq(cpxTransactions.userId, id))
-        .orderBy(asc(cpxTransactions.createdAt)),
+        .orderBy(desc(cpxTransactions.createdAt)),
 
       db
         .select({
@@ -247,7 +247,7 @@ export async function GET(
         })
         .from(surveyAttempts)
         .where(eq(surveyAttempts.userId, id))
-        .orderBy(asc(surveyAttempts.startedAt)),
+        .orderBy(desc(surveyAttempts.startedAt)),
 
       db
         .select({
@@ -305,16 +305,13 @@ export async function GET(
         .select({
           totalSurveys: sql<number>`count(*)`.as("total_surveys"),
           successfulSurveys: sql<number>`count(*) filter (
-            where lower(${cpxTransactions.status}) = 'completed'
-              and lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
+            where ${successfulSurveyCondition}
           )`.as("successful_surveys"),
           outSurveys: sql<number>`count(*) filter (
-            where lower(${cpxTransactions.status}) = 'completed'
-              and lower(coalesce(${cpxTransactions.type}, '')) = 'out'
+            where ${outSurveyCondition}
           )`.as("out_surveys"),
           failedSurveys: sql<number>`count(*) filter (
-            where lower(${cpxTransactions.status}) <> 'completed'
-              or lower(coalesce(${cpxTransactions.type}, '')) not in ('complete', 'out')
+            where ${failedSurveyCondition}
           )`.as("failed_surveys"),
           startedSurveys: sql<number>`(
             select count(*)
@@ -325,8 +322,7 @@ export async function GET(
           totalEarnedUsd: sql<string>`(
             coalesce(
               sum(${cpxTransactions.amountUsd}) filter (
-                where lower(${cpxTransactions.status}) = 'completed'
-                  and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
+                where ${rewardedSurveyCondition}
               ),
               0
             )

@@ -16,6 +16,12 @@ import { desc, eq, sql } from "drizzle-orm";
 
 import { isAdmin } from "@/lib/auth";
 import { ADMIN_EMAIL } from "@/lib/config";
+import {
+  failedSurveyCondition,
+  outSurveyCondition,
+  rewardedSurveyCondition,
+  successfulSurveyCondition,
+} from "@/lib/survey-stats";
 import AdminUsers from "./AdminUsers";
 import AppHeader from "../AppHeader";
 
@@ -30,16 +36,13 @@ export default async function AdminPage() {
       userId: cpxTransactions.userId,
       totalSurveys: sql<number>`count(*)`.as("total_surveys"),
       successfulSurveys: sql<number>`count(*) filter (
-        where lower(${cpxTransactions.status}) = 'completed'
-          and lower(coalesce(${cpxTransactions.type}, '')) = 'complete'
+        where ${successfulSurveyCondition}
       )`.as("successful_surveys"),
       outSurveys: sql<number>`count(*) filter (
-        where lower(${cpxTransactions.status}) = 'completed'
-          and lower(coalesce(${cpxTransactions.type}, '')) = 'out'
+        where ${outSurveyCondition}
       )`.as("out_surveys"),
       failedSurveys: sql<number>`count(*) filter (
-        where lower(${cpxTransactions.status}) <> 'completed'
-          or lower(coalesce(${cpxTransactions.type}, '')) not in ('complete', 'out')
+        where ${failedSurveyCondition}
       )`.as("failed_surveys"),
     })
     .from(cpxTransactions)
@@ -97,8 +100,7 @@ export default async function AdminPage() {
             select sum(${cpxTransactions.amountUsd})
             from ${cpxTransactions}
             where ${cpxTransactions.userId} = ${users.id}
-              and lower(${cpxTransactions.status}) = 'completed'
-              and lower(coalesce(${cpxTransactions.type}, '')) in ('complete', 'out')
+              and ${rewardedSurveyCondition}
           ), 0)
           +
           coalesce((

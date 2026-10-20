@@ -3,6 +3,10 @@ import { requireUser } from "@/lib/route-protection";
 import { ADMIN_EMAIL } from "@/lib/config";
 import { db } from "@/lib/db";
 import { cpxTransactions, wallets } from "@/lib/schema";
+import {
+  rewardedSurveyCondition,
+  successfulSurveyCondition,
+} from "@/lib/survey-stats";
 import { eq, sql } from "drizzle-orm";
 
 export default async function DashboardPage() {
@@ -31,11 +35,11 @@ export default async function DashboardPage() {
       db
         .select({
           completedSurveys: sql<number>`count(*) filter (
-            where lower(${cpxTransactions.status}) = 'completed'
+            where ${successfulSurveyCondition}
           )`.as("completed_surveys"),
           totalEarned: sql<string>`coalesce(
             sum(${cpxTransactions.amountUsd}) filter (
-              where lower(${cpxTransactions.status}) = 'completed'
+              where ${rewardedSurveyCondition}
             ),
             0
           )`.as("total_earned"),

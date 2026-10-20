@@ -45,6 +45,7 @@ function SurveySkeleton() {
 
 export default function SurveysPage() {
   const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [availableCount, setAvailableCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -71,6 +72,13 @@ export default function SurveysPage() {
       }
 
       setSurveys(Array.isArray(data.surveys) ? data.surveys : []);
+      setAvailableCount(
+        Number.isFinite(Number(data.available))
+          ? Math.max(0, Number(data.available))
+          : Array.isArray(data.surveys)
+            ? data.surveys.length
+            : 0
+      );
     } catch (err) {
       console.error(err);
       setError("We couldn't load the available surveys.");
@@ -119,13 +127,13 @@ export default function SurveysPage() {
                   Available
                 </div>
                 <div className="mt-0.5 text-lg font-bold">
-                  {loading ? "—" : surveys.length}
+                  {loading ? "—" : availableCount}
                 </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
                 <div className="text-xs text-white/50">
-                  Potential earnings
+                  Listed earnings potential
                 </div>
                 <div className="mt-0.5 text-lg font-bold">
                   {loading
@@ -327,6 +335,17 @@ export default function SurveysPage() {
                       onClick={async (event) => {
                         event.preventDefault();
 
+                        const surveyWindow = window.open("about:blank", "_blank");
+
+                        if (!surveyWindow) {
+                          alert(
+                            "Please allow pop-ups to open this survey."
+                          );
+                          return;
+                        }
+
+                        surveyWindow.opener = null;
+
                         try {
                           const response = await fetch("/api/surveys/start", {
                             method: "POST",
@@ -347,12 +366,9 @@ export default function SurveysPage() {
                             );
                           }
 
-                          window.open(
-                            result.href,
-                            "_blank",
-                            "noopener,noreferrer"
-                          );
+                          surveyWindow.location.href = result.href;
                         } catch (error) {
+                          surveyWindow.close();
                           console.error("Survey start error:", error);
                           alert(
                             "Unable to start this survey. Please try again."
